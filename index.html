@@ -76,24 +76,43 @@
 
     .header-left {
       display: flex;
+      align-items: flex-end;
+    }
+
+    .logo-block {
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 1.1rem;
+      position: relative;
     }
 
     .header-mascot {
-      height: clamp(4.16rem, 11.2vw, 6.72rem);
+      height: clamp(5rem, 13vw, 8.5rem);
       width: auto;
       display: block;
-      filter: drop-shadow(0 2px 12px rgba(0,0,0,.5));
+      filter: drop-shadow(0 2px 16px rgba(0,0,0,.6));
       flex-shrink: 0;
+      position: relative;
+      z-index: 2;
+      margin-bottom: -0.55rem;
+    }
+
+    .title-banner {
+      background: #000;
+      padding: .18rem .9rem .22rem;
+      border-radius: 4px;
+      position: relative;
+      z-index: 1;
+      white-space: nowrap;
     }
 
     header h1 {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(2.6rem, 7vw, 4.2rem);
-      letter-spacing: .04em;
+      font-size: clamp(1.8rem, 4.8vw, 3.2rem);
+      letter-spacing: .07em;
       color: #fff;
-      line-height: .95;
+      line-height: 1;
+      text-align: center;
     }
 
     .header-right {
@@ -439,18 +458,16 @@
 
       .header-inner { gap: .5rem; }
 
-      .header-left { gap: .5rem; min-width: 0; }
+      .header-left { min-width: 0; }
 
       .header-mascot {
-        height: clamp(2.72rem, 13.6vw, 4.16rem);
+        height: clamp(3.4rem, 17vw, 5rem);
+        margin-bottom: -0.4rem;
       }
 
-      header h1 {
-        font-size: clamp(1.4rem, 7.5vw, 2.6rem);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: clip;
-      }
+      .title-banner { padding: .14rem .6rem .18rem; }
+
+      header h1 { font-size: clamp(1.2rem, 6vw, 1.8rem); }
 
       .header-right {
         flex-direction: row;
@@ -499,9 +516,9 @@
 
     /* ── Very small (≤ 380px) ────────────────────────────────── */
     @media (max-width: 380px) {
-      .header-mascot { display: none; }
+      .header-mascot { height: clamp(2.8rem, 14vw, 3.4rem); }
 
-      header h1 { font-size: clamp(1.6rem, 9vw, 2.2rem); }
+      header h1 { font-size: clamp(1rem, 5.5vw, 1.4rem); }
 
       .summary-grid { grid-template-columns: 1fr; }
     }
@@ -512,8 +529,12 @@
 <header>
   <div class="header-inner">
     <div class="header-left">
-      <img src="harry.png" alt="" class="header-mascot" aria-hidden="true">
-      <h1>Harryhandel-trackeren</h1>
+      <div class="logo-block">
+        <img src="harry.png" alt="" class="header-mascot" aria-hidden="true">
+        <div class="title-banner">
+          <h1>Harryhandel-trackeren</h1>
+        </div>
+      </div>
     </div>
     <div class="header-right">
       <span class="live-badge"><span class="live-dot"></span>Åpne data · Live</span>
@@ -524,9 +545,9 @@
 
 <nav aria-label="Velg visning">
   <div class="nav-inner">
-    <button id="btn-hourly"  aria-selected="true"  onclick="switchTab('hourly')">Timetrafikk</button>
-    <button id="btn-daily"   aria-selected="false" onclick="switchTab('daily')">Dagsvisning</button>
-    <button id="btn-monthly" aria-selected="false" onclick="switchTab('monthly')">Månedstrafikk</button>
+    <button id="btn-hourly"     aria-selected="true"  onclick="switchTab('hourly')">Timetrafikk</button>
+    <button id="btn-underskudd" aria-selected="false" onclick="switchTab('underskudd')">Harryhandelsunderskudd</button>
+    <button id="btn-monthly"    aria-selected="false" onclick="switchTab('monthly')">Månedstrafikk</button>
   </div>
 </nav>
 
@@ -593,48 +614,28 @@
     </p>
   </section>
 
-  <!-- ══ Daily ═════════════════════════════════════════════ -->
-  <section id="section-daily" hidden>
-    <div class="summary-grid" id="sum-daily" style="display:none">
-      <article class="inn">
-        <h2>Toppdag inn i Norge</h2>
-        <p class="value" id="stat-peak-inn">–</p>
-        <small id="stat-peak-inn-date" style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">personbiler</small>
-      </article>
+  <!-- ══ Harryhandelsunderskudd ══════════════════════════════════ -->
+  <section id="section-underskudd" hidden>
+    <div class="summary-grid" id="sum-underskudd" style="display:none">
       <article class="ut">
-        <h2>Toppdag ut av Norge</h2>
-        <p class="value" id="stat-peak-ut">–</p>
-        <small id="stat-peak-ut-date" style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">personbiler</small>
+        <h2>Underskudd E6 (ny bru) · 12 mnd</h2>
+        <p class="value" id="stat-und-e6">–</p>
+        <small id="stat-und-e6-label" style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">personbiler ut minus inn</small>
+      </article>
+      <article class="inn">
+        <h2>Underskudd FV118 (gammel bru) · 12 mnd</h2>
+        <p class="value" id="stat-und-fv">–</p>
+        <small id="stat-und-fv-label" style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">personbiler ut minus inn</small>
       </article>
     </div>
-
-    <div id="loading-daily" class="status"><span class="spinner"></span>Henter daglige data…</div>
-
-    <div id="charts-daily" class="charts-grid" style="display:none">
-      <div class="chart-card">
-        <h2>Inn i Norge · daglig</h2>
-        <div class="legend-row">
-          <span class="legend-item"><span class="leg-solid" style="background:var(--inn)"></span>Faktisk</span>
-          <span class="legend-item"><span class="leg-dashed"></span>Snitt ukedag</span>
-          <span class="legend-item"><span class="hol-bar" style="background:rgba(240,112,112,.35)"></span>Helligdag</span>
-          <span class="legend-item"><span class="hol-bar" style="background:rgba(240,180,41,.9)"></span>Skjærtorsdag</span>
-        </div>
-        <div class="chart-wrap--tall"><canvas id="chart-daily-inn"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <h2>Ut av Norge · daglig</h2>
-        <div class="legend-row">
-          <span class="legend-item"><span class="leg-solid" style="background:var(--ut)"></span>Faktisk</span>
-          <span class="legend-item"><span class="leg-dashed"></span>Snitt ukedag</span>
-          <span class="legend-item"><span class="hol-bar" style="background:rgba(240,112,112,.35)"></span>Helligdag</span>
-          <span class="legend-item"><span class="hol-bar" style="background:rgba(240,180,41,.9)"></span>Skjærtorsdag</span>
-        </div>
-        <div class="chart-wrap--tall"><canvas id="chart-daily-ut"></canvas></div>
-      </div>
+    <div id="loading-underskudd" class="status"><span class="spinner"></span>Henter data for begge broer…</div>
+    <div class="chart-card" id="card-underskudd" style="display:none">
+      <h2>Inn / ut per måned · E6 ny bru og FV118 gammel bru · siste 12 komplette måneder</h2>
+      <div class="chart-wrap--tall"><canvas id="chart-underskudd"></canvas></div>
     </div>
-
-    <p class="note" id="note-daily" style="display:none">
-      Personbil = kjøretøy &lt; 5,6 m &nbsp;·&nbsp; Stiplet = ukedagssnitt fra historikken &nbsp;·&nbsp; Markerte streker = norske helligdager
+    <p class="note" id="note-underskudd" style="display:none">
+      Underskudd = antall kjøretøy ut minus inn &nbsp;·&nbsp; Personbil = kjøretøy &lt; 5,6 m &nbsp;·&nbsp;
+      E6 TRP 04904V971774 &nbsp;·&nbsp; FV118 TRP 35229V971507 &nbsp;·&nbsp; Inneværende måned utelatt (ufullstendig)
     </p>
   </section>
 
@@ -930,46 +931,67 @@ async function getDayEdges() {
   return _dayEdges;
 }
 
-/* ── Daily ──────────────────────────────────────────────────── */
-async function loadDaily() {
-  if(loaded.daily) return;
-  const loadEl=document.getElementById('loading-daily');
+/* ── Harryhandelsunderskudd ─────────────────────────────────── */
+let _underskuddEdges = null;
+async function getUnderskuddEdges() {
+  if (_underskuddEdges) return _underskuddEdges;
+  const now = new Date(), from = new Date(now);
+  from.setMonth(from.getMonth()-13); from.setDate(1); from.setHours(0,0,0,0);
+  const [e6, fv] = await Promise.all([
+    fetchAllEdges('byDay', toLocalISO(from), toLocalISO(now), TRP),
+    fetchAllEdges('byDay', toLocalISO(from), toLocalISO(now), TRP_GAMMEL),
+  ]);
+  _underskuddEdges = { e6, fv };
+  return _underskuddEdges;
+}
+
+async function loadUnderskudd() {
+  if (loaded.underskudd) return;
+  const loadEl = document.getElementById('loading-underskudd');
   try {
-    const edges=await getDayEdges(), now=new Date();
-    const byDate={};
-    for(const e of edges){
-      const date=e.node.from.slice(0,10);
-      if(!byDate[date]) byDate[date]={inn:0,ut:0};
-      byDate[date].inn+=dirVol(e.node.byDirection,DIR_INN)??0;
-      byDate[date].ut +=dirVol(e.node.byDirection,DIR_UT) ??0;
+    const { e6, fv } = await getUnderskuddEdges();
+    const now = new Date();
+    const thisMonth = toLocalISO(now).slice(0,7);
+
+    const monthsE6 = {};
+    for (const e of e6) {
+      const key = e.node.from.slice(0,7);
+      if (!monthsE6[key]) monthsE6[key] = { inn:0, ut:0, date: new Date(e.node.from.slice(0,10)+'T12:00:00') };
+      monthsE6[key].inn += dirVol(e.node.byDirection, DIR_INN) ?? 0;
+      monthsE6[key].ut  += dirVol(e.node.byDirection, DIR_UT)  ?? 0;
     }
-    const wdInn=Array(7).fill(0),wdUt=Array(7).fill(0),wdN=Array(7).fill(0);
-    for(const [d,v] of Object.entries(byDate)){
-      const wd=new Date(d+'T12:00:00').getDay();
-      wdInn[wd]+=v.inn; wdUt[wd]+=v.ut; wdN[wd]++;
+    const monthsFV = {};
+    for (const e of fv) {
+      const key = e.node.from.slice(0,7);
+      if (!monthsFV[key]) monthsFV[key] = { inn:0, ut:0 };
+      monthsFV[key].inn += dirVol(e.node.byDirection, DIR_INN)  ?? 0;
+      monthsFV[key].ut  += dirVol(e.node.byDirection, DIR_UT_G) ?? 0;
     }
-    const wdAvgInn=wdInn.map((t,i)=>wdN[i]?Math.round(t/wdN[i]):null);
-    const wdAvgUt =wdUt.map((t,i) =>wdN[i]?Math.round(t/wdN[i]):null);
-    const thisMonth=toLocalISO(now).slice(0,7);
-    const cutoff=isoDate((()=>{const d=new Date(now);d.setMonth(d.getMonth()-12);d.setDate(1);return d;})());
-    const filtered=Object.keys(byDate).sort().filter(d=>d>=cutoff&&d.slice(0,7)!==thisMonth);
-    const innData=filtered.map(d=>byDate[d].inn);
-    const utData =filtered.map(d=>byDate[d].ut);
-    const innAvg =filtered.map(d=>wdAvgInn[new Date(d+'T12:00:00').getDay()]);
-    const utAvg  =filtered.map(d=>wdAvgUt[new Date(d+'T12:00:00').getDay()]);
-    const pi=innData.reduce((mi,v,i,a)=>(v??0)>(a[mi]??0)?i:mi,0);
-    const pu=utData.reduce((mi,v,i,a) =>(v??0)>(a[mi]??0)?i:mi,0);
-    document.getElementById('stat-peak-inn').textContent     =fmtNum(innData[pi]);
-    document.getElementById('stat-peak-inn-date').textContent=fmtDateLong(filtered[pi]);
-    document.getElementById('stat-peak-ut').textContent      =fmtNum(utData[pu]);
-    document.getElementById('stat-peak-ut-date').textContent =fmtDateLong(filtered[pu]);
-    const holMap=buildHolidayMap(new Date(filtered[0]+'T12:00:00'),new Date(filtered[filtered.length-1]+'T12:00:00'));
-    loadEl.style.display='none';
-    show('sum-daily'); show('charts-daily'); show('note-daily');
-    makeDailyChart('chart-daily-inn',filtered,innData,innAvg,'Inn i Norge',`${CLR_INN}d9`,`${CLR_INN}14`,holMap);
-    makeDailyChart('chart-daily-ut', filtered,utData, utAvg, 'Ut av Norge',`${CLR_UT}d9`, `${CLR_UT}14`, holMap);
-    loaded.daily=true;
-  } catch(err){showError(loadEl,err.message);}
+
+    const sorted = Object.entries(monthsE6).sort(([a],[b])=>a.localeCompare(b)).filter(([k])=>k!==thisMonth).slice(-12);
+    const labels = sorted.map(([,v]) => v.date.toLocaleDateString('nb-NO', {month:'short', year:'2-digit'}));
+    const innE6  = sorted.map(([k,v]) => v.inn);
+    const utE6   = sorted.map(([k,v]) => v.ut);
+    const innFV  = sorted.map(([k]) => monthsFV[k]?.inn ?? 0);
+    const utFV   = sorted.map(([k]) => monthsFV[k]?.ut  ?? 0);
+
+    const totalUtE6  = utE6.reduce((s,n)=>s+n,0);
+    const totalInnE6 = innE6.reduce((s,n)=>s+n,0);
+    const totalUtFV  = utFV.reduce((s,n)=>s+n,0);
+    const totalInnFV = innFV.reduce((s,n)=>s+n,0);
+    const undE6 = totalUtE6 - totalInnE6;
+    const undFV = totalUtFV - totalInnFV;
+
+    document.getElementById('stat-und-e6').textContent      = fmtNum(Math.abs(undE6));
+    document.getElementById('stat-und-fv').textContent      = fmtNum(Math.abs(undFV));
+    document.getElementById('stat-und-e6-label').textContent = undE6 >= 0 ? 'Flere reiste ut enn inn' : 'Flere reiste inn enn ut';
+    document.getElementById('stat-und-fv-label').textContent = undFV >= 0 ? 'Flere reiste ut enn inn' : 'Flere reiste inn enn ut';
+
+    loadEl.style.display = 'none';
+    show('sum-underskudd'); show('card-underskudd'); show('note-underskudd');
+    makeUnderskuddChart('chart-underskudd', labels, innE6, utE6, innFV, utFV);
+    loaded.underskudd = true;
+  } catch(err) { showError(loadEl, err.message); }
 }
 
 /* ── Monthly ────────────────────────────────────────────────── */
@@ -1037,30 +1059,19 @@ function make3LineChart(id,labels,actual,actual2,annualAvg,peakDay,actLabel,act2
   });
 }
 
-function makeDailyChart(id,dateLabels,actual,avgLine,actLabel,actColor,fillColor,holidays) {
-  if(charts[id]) charts[id].destroy();
-  const annotations={};
-  for(const [date,hol] of Object.entries(holidays)){
-    if(!dateLabels.includes(date)) continue;
-    annotations['l_'+date]={
-      type:'line',xMin:date,xMax:date,
-      borderColor:hol.peak?'rgba(240,180,41,.85)':'rgba(240,112,112,.28)',
-      borderWidth:hol.peak?2.5:1,
-      label:hol.peak?{display:true,content:hol.name,position:'start',yAdjust:8,
-        font:{size:10,weight:'700',family:"'DM Mono', monospace"},color:'#f0b429',
-        backgroundColor:'rgba(240,180,41,.1)',borderColor:'rgba(240,180,41,.3)',borderRadius:4,padding:{x:5,y:3}}
-        :{display:false}
-    };
-  }
-  charts[id]=new Chart(document.getElementById(id),{
-    type:'line',
-    data:{labels:dateLabels,datasets:[
-      {label:actLabel,      data:actual,  borderColor:actColor,  backgroundColor:fillColor,   borderWidth:1.5,pointRadius:0,tension:.2,fill:true, spanGaps:true,order:2},
-      {label:'Snitt ukedag',data:avgLine, borderColor:CLR_AVG,   backgroundColor:'transparent',borderWidth:1.5,borderDash:[5,4],pointRadius:0,tension:0,fill:false,spanGaps:true,order:1}
+function makeUnderskuddChart(id, labels, innE6, utE6, innFV, utFV) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label:'E6 inn i Norge',  data:innE6, backgroundColor:`${CLR_INN}cc`,  borderColor:CLR_INN,  borderWidth:1, borderRadius:3 },
+      { label:'E6 ut av Norge',  data:utE6,  backgroundColor:`${CLR_UT}cc`,   borderColor:CLR_UT,   borderWidth:1, borderRadius:3 },
+      { label:'FV118 inn',       data:innFV, backgroundColor:`${CLR_INN2}99`, borderColor:CLR_INN2, borderWidth:1, borderRadius:3 },
+      { label:'FV118 ut',        data:utFV,  backgroundColor:`${CLR_UT2}99`,  borderColor:CLR_UT2,  borderWidth:1, borderRadius:3 },
     ]},
-    options:{
-      responsive:true,maintainAspectRatio:false,animation:{duration:300},
-      interaction:{mode:'index',intersect:false},
+    options: {
+      responsive:true, maintainAspectRatio:false, animation:{duration:300},
+      interaction:{mode:'index', intersect:false},
       plugins:{
         legend:{position:'bottom',labels:{font:{size:10,family:"'DM Mono', monospace"},boxWidth:16,padding:10,color:'#5a7a9a'}},
         tooltip:{
@@ -1071,25 +1082,12 @@ function makeDailyChart(id,dateLabels,actual,avgLine,actLabel,actColor,fillColor
           bodyColor:'#8aabcc',
           titleFont:{family:"'DM Mono', monospace",size:11},
           bodyFont:{family:"'DM Mono', monospace",size:11},
-          callbacks:{
-            title:items=>{
-              const d=items[0].label,hol=holidays[d];
-              const fmt=new Date(d+'T12:00:00').toLocaleDateString('nb-NO',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-              return hol?`${fmt} – ${hol.name}`:fmt;
-            },
-            label:ctx=>ctx.parsed.y==null?null:` ${ctx.dataset.label}: ${fmtNum(ctx.parsed.y)} personbiler`
-          }
-        },
-        annotation:{annotations}
+          callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtNum(ctx.parsed.y)} personbiler`}
+        }
       },
       scales:{
-        x:{grid:{color:'rgba(26,48,80,.3)'},ticks:{autoSkip:false,maxRotation:0,font:{size:10,family:"'DM Mono', monospace"},color:'#3d5a78',
-          callback:function(val){
-            const label=dateLabels[val]||'';
-            const d=new Date(label+'T12:00:00');
-            return isNaN(d)||d.getDate()!==1?null:d.toLocaleDateString('nb-NO',{month:'short',year:'2-digit'});
-          }}},
-        y:{beginAtZero:true,grid:{color:'rgba(26,48,80,.3)'},title:{display:true,text:'PERSONBILER / DAG',font:{size:9,family:"'DM Mono', monospace"},color:'#3d5a78'},ticks:{callback:v=>fmtNum(v),font:{size:10,family:"'DM Mono', monospace"},color:'#3d5a78'}}
+        x:{grid:{display:false},ticks:{font:{size:11,family:"'DM Mono', monospace"},color:'#3d5a78'}},
+        y:{beginAtZero:true,grid:{color:'rgba(26,48,80,.3)'},title:{display:true,text:'PERSONBILER / MÅNED',font:{size:9,family:"'DM Mono', monospace"},color:'#3d5a78'},ticks:{callback:v=>fmtNum(v),font:{size:11,family:"'DM Mono', monospace"},color:'#3d5a78'}}
       }
     }
   });
@@ -1135,12 +1133,12 @@ function showError(el,msg){ el.innerHTML=`<strong style="color:var(--red)">Feil:
 const loaded={};
 
 function switchTab(tab) {
-  ['hourly','daily','monthly'].forEach(t=>{
+  ['hourly','underskudd','monthly'].forEach(t=>{
     document.getElementById('section-'+t).hidden=t!==tab;
     document.getElementById('btn-'+t).setAttribute('aria-selected',String(t===tab));
   });
-  if(tab==='daily')   loadDaily();
-  if(tab==='monthly') loadMonthly();
+  if(tab==='underskudd') loadUnderskudd();
+  if(tab==='monthly')    loadMonthly();
 }
 
 /* ── Init ────────────────────────────────────────────────────── */
