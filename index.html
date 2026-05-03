@@ -405,7 +405,7 @@
     @media (max-width: 600px) {
       header { padding: .8rem .75rem .75rem; }
 
-      .site-logo { max-width: clamp(180px, 72vw, 300px); }
+      .site-logo { max-width: clamp(160px, 55vw, 260px); }
 
       nav button {
         font-size: .67rem;
@@ -455,7 +455,10 @@
 
 <header>
   <div class="header-inner">
-    <img src="logo.png" alt="Harryhandel-trackeren" class="site-logo">
+    <picture>
+      <source srcset="logo-mobil.png" media="(max-width: 600px)">
+      <img src="logo.png" alt="Harryhandel-trackeren" class="site-logo">
+    </picture>
   </div>
 </header>
 
