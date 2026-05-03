@@ -633,6 +633,17 @@
       <h2>Inn / ut per måned · E6 ny bru og FV118 gammel bru · siste 12 komplette måneder</h2>
       <div class="chart-wrap--tall"><canvas id="chart-underskudd"></canvas></div>
     </div>
+
+    <div class="chart-card" id="card-lordag" style="display:none">
+      <h2>Typisk lørdag · snitt siste 8 lørdager · E6 ut og FV118 inn</h2>
+      <div class="legend-row">
+        <span class="legend-item"><span class="leg-solid" style="background:#f07070"></span>E6 ut av Norge (ny bru)</span>
+        <span class="legend-item"><span class="leg-solid" style="background:#34d399"></span>FV118 inn i Norge (gammel bru)</span>
+      </div>
+      <div class="chart-wrap--tall"><canvas id="chart-lordag"></canvas></div>
+    </div>
+    <div id="loading-lordag" class="status" style="display:none"><span class="spinner"></span>Analyserer lørdagsmønster (siste 8 lørdager)…</div>
+
     <p class="note" id="note-underskudd" style="display:none">
       Underskudd = antall kjøretøy ut minus inn &nbsp;·&nbsp; Personbil = kjøretøy &lt; 5,6 m &nbsp;·&nbsp;
       E6 TRP 04904V971774 &nbsp;·&nbsp; FV118 TRP 35229V971507 &nbsp;·&nbsp; Inneværende måned utelatt (ufullstendig)
@@ -991,7 +1002,51 @@ async function loadUnderskudd() {
     show('sum-underskudd'); show('card-underskudd'); show('note-underskudd');
     makeUnderskuddChart('chart-underskudd', labels, innE6, utE6, innFV, utFV);
     loaded.underskudd = true;
+
+    // Load saturday pattern after main chart is shown
+    loadSaturdayPattern();
   } catch(err) { showError(loadEl, err.message); }
+}
+
+async function loadSaturdayPattern() {
+  if (loaded.lordag) return;
+  const lorEl = document.getElementById('loading-lordag');
+  lorEl.style.display = '';
+  try {
+    const saturdays = [];
+    let d = new Date();
+    while (saturdays.length < 8) {
+      if (d.getDay() === 6) saturdays.push(isoDate(d));
+      d = addDays(d, -1);
+    }
+    const tz = tzOff();
+    const allFetches = saturdays.map(date => {
+      const from = `${date}T00:00:00${tz}`, to = `${date}T23:59:59${tz}`;
+      return Promise.all([
+        fetchAllEdges('byHour', from, to, TRP),
+        fetchAllEdges('byHour', from, to, TRP_GAMMEL),
+      ]);
+    });
+    const results = await Promise.all(allFetches);
+
+    const sumE6ut = new Array(24).fill(0), cntE6 = new Array(24).fill(0);
+    const sumFVinn= new Array(24).fill(0), cntFV = new Array(24).fill(0);
+    for (const [edgesE6, edgesFV] of results) {
+      const d1 = edgesToHourArrays(edgesE6,  DIR_INN, DIR_UT);
+      const d2 = edgesToHourArrays(edgesFV,  DIR_INN, DIR_UT_G);
+      for (let h = 0; h < 24; h++) {
+        if (d1.ut[h]  != null) { sumE6ut[h]  += d1.ut[h];  cntE6[h]++; }
+        if (d2.inn[h] != null) { sumFVinn[h] += d2.inn[h]; cntFV[h]++; }
+      }
+    }
+    const avgE6ut  = sumE6ut.map( (s,i) => cntE6[i] ? Math.round(s/cntE6[i]) : null);
+    const avgFVinn = sumFVinn.map((s,i) => cntFV[i] ? Math.round(s/cntFV[i]) : null);
+
+    lorEl.style.display = 'none';
+    show('card-lordag');
+    makeLordagChart('chart-lordag', avgE6ut, avgFVinn);
+    loaded.lordag = true;
+  } catch(err) { showError(lorEl, err.message); }
 }
 
 /* ── Monthly ────────────────────────────────────────────────── */
@@ -1088,6 +1143,79 @@ function makeUnderskuddChart(id, labels, innE6, utE6, innFV, utFV) {
       scales:{
         x:{grid:{display:false},ticks:{font:{size:11,family:"'DM Mono', monospace"},color:'#3d5a78'}},
         y:{beginAtZero:true,grid:{color:'rgba(26,48,80,.3)'},title:{display:true,text:'PERSONBILER / MÅNED',font:{size:9,family:"'DM Mono', monospace"},color:'#3d5a78'},ticks:{callback:v=>fmtNum(v),font:{size:11,family:"'DM Mono', monospace"},color:'#3d5a78'}}
+      }
+    }
+  });
+}
+
+function makeLordagChart(id, avgE6ut, avgFVinn) {
+  if (charts[id]) charts[id].destroy();
+  const hours = Array.from({length:24}, (_,i) => pad(i)+':00');
+  charts[id] = new Chart(document.getElementById(id), {
+    type: 'line',
+    data: { labels: hours, datasets: [
+      {
+        label: 'E6 ut av Norge',
+        data: avgE6ut,
+        borderColor: CLR_UT,
+        backgroundColor: CLR_UT+'18',
+        borderWidth: 2.5, pointRadius: 3, tension: .35, fill: true, spanGaps: false,
+      },
+      {
+        label: 'FV118 inn i Norge',
+        data: avgFVinn,
+        borderColor: CLR_INN2,
+        backgroundColor: CLR_INN2+'18',
+        borderWidth: 2.5, pointRadius: 3, tension: .35, fill: true, spanGaps: false,
+      },
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: {duration:300},
+      interaction: {mode:'index', intersect:false},
+      plugins: {
+        legend: {position:'bottom',labels:{font:{size:10,family:"'DM Mono', monospace"},boxWidth:16,padding:10,color:'#5a7a9a'}},
+        tooltip: {
+          backgroundColor:'rgba(7,13,24,.95)',
+          borderColor:'rgba(26,48,80,.8)',
+          borderWidth:1,
+          titleColor:'#dde6f0',
+          bodyColor:'#8aabcc',
+          titleFont:{family:"'DM Mono', monospace",size:11},
+          bodyFont:{family:"'DM Mono', monospace",size:11},
+          callbacks:{label:ctx=>ctx.parsed.y==null?null:` ${ctx.dataset.label}: ${fmtNum(ctx.parsed.y)} personbiler`}
+        },
+        annotation: {
+          annotations: {
+            zone: {
+              type: 'box',
+              xMin: '07:00', xMax: '11:00',
+              backgroundColor: 'rgba(240,112,112,.06)',
+              borderColor: 'rgba(240,112,112,.2)',
+              borderWidth: 1,
+              label: {display:true, content:'Utreise', position:'start',
+                font:{size:9,family:"'DM Mono', monospace"},
+                color:'rgba(240,112,112,.7)', backgroundColor:'transparent',
+                yAdjust: -8}
+            },
+            zone2: {
+              type: 'box',
+              xMin: '13:00', xMax: '18:00',
+              backgroundColor: 'rgba(52,211,153,.06)',
+              borderColor: 'rgba(52,211,153,.2)',
+              borderWidth: 1,
+              label: {display:true, content:'Hjemkomst', position:'start',
+                font:{size:9,family:"'DM Mono', monospace"},
+                color:'rgba(52,211,153,.7)', backgroundColor:'transparent',
+                yAdjust: -8}
+            }
+          }
+        }
+      },
+      scales: {
+        x: {grid:{color:'rgba(26,48,80,.3)'},ticks:{autoSkip:true,maxTicksLimit:12,font:{size:10,family:"'DM Mono', monospace"},color:'#3d5a78'}},
+        y: {beginAtZero:true,grid:{color:'rgba(26,48,80,.3)'},
+          title:{display:true,text:'PERSONBILER / TIME (SNITT)',font:{size:9,family:"'DM Mono', monospace"},color:'#3d5a78'},
+          ticks:{callback:v=>fmtNum(v),font:{size:10,family:"'DM Mono', monospace"},color:'#3d5a78'}}
       }
     }
   });
