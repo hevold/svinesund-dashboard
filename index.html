@@ -548,11 +548,13 @@
       <article class="inn">
         <h2>Inn i Norge</h2>
         <p class="value" id="stat-h-inn">–</p>
+        <p class="compare" id="stat-h-inn2"></p>
         <p class="compare" id="cmp-h-inn"></p>
       </article>
       <article class="ut">
         <h2>Ut av Norge</h2>
         <p class="value" id="stat-h-ut">–</p>
+        <p class="compare" id="stat-h-ut2"></p>
         <p class="compare" id="cmp-h-ut"></p>
       </article>
     </div>
@@ -565,18 +567,20 @@
       <div class="chart-card">
         <h2>Inn i Norge · mot Sarpsborg</h2>
         <div class="legend-row">
-          <span class="legend-item"><span class="leg-solid" style="background:var(--inn)"></span>Valgt dag</span>
-          <span class="legend-item"><span class="leg-dashed"></span>Årssnitt 2025</span>
-          <span class="legend-item"><span class="leg-dotted"></span><span id="peak-label-inn">Toppdag 2025</span></span>
+          <span class="legend-item"><span class="leg-solid" style="background:#5ba3f5"></span>E6 (ny bru)</span>
+          <span class="legend-item"><span class="leg-solid" style="background:#34d399;opacity:.85"></span>FV118 (gammel)</span>
+          <span class="legend-item"><span class="leg-dashed"></span>Årssnitt E6</span>
+          <span class="legend-item"><span class="leg-dotted"></span><span id="peak-label-inn">Toppdag</span></span>
         </div>
         <div class="chart-wrap"><canvas id="chart-inn"></canvas></div>
       </div>
       <div class="chart-card">
         <h2>Ut av Norge · mot Sverige</h2>
         <div class="legend-row">
-          <span class="legend-item"><span class="leg-solid" style="background:var(--ut)"></span>Valgt dag</span>
-          <span class="legend-item"><span class="leg-dashed"></span>Årssnitt 2025</span>
-          <span class="legend-item"><span class="leg-dotted"></span><span id="peak-label-ut">Toppdag 2025</span></span>
+          <span class="legend-item"><span class="leg-solid" style="background:#f07070"></span>E6 (ny bru)</span>
+          <span class="legend-item"><span class="leg-solid" style="background:#fb923c;opacity:.85"></span>FV118 (gammel)</span>
+          <span class="legend-item"><span class="leg-dashed"></span>Årssnitt E6</span>
+          <span class="legend-item"><span class="leg-dotted"></span><span id="peak-label-ut">Toppdag</span></span>
         </div>
         <div class="chart-wrap"><canvas id="chart-ut"></canvas></div>
       </div>
@@ -584,8 +588,8 @@
 
     <p class="note" id="note-hourly" style="display:none">
       Personbil = kjøretøy &lt; 5,6 m &nbsp;·&nbsp;
-      Årssnitt beregnet av Statens vegvesen API (alle dagtyper, 2025) &nbsp;·&nbsp;
-      Toppdag identifisert fra 365 dagers data: <strong id="note-peak-date">13. jul 2025</strong> (23 928 kjøretøy)
+      E6 = ny Svinesundsbrua (TRP 04904V971774) &nbsp;·&nbsp; FV118 = gammel Svinesund bru (TRP 35229V971507) &nbsp;·&nbsp;
+      Toppdag E6: <strong id="note-peak-date">13. jul 2025</strong> (23 928 kjøretøy)
     </p>
   </section>
 
@@ -673,12 +677,14 @@ Chart.defaults.font.family     = "'DM Mono', monospace";
 Chart.defaults.font.size       = 11;
 
 /* ── Config ─────────────────────────────────────────────────── */
-const API        = 'https://trafikkdata-api.atlas.vegvesen.no/';
-const TRP        = '04904V971774';
-const PERSONBIL  = '[..,5.6)';
-const DIR_INN    = 'Sarpsborg';
-const DIR_UT     = 'Svinesund (Riksgrensen)';
-const BATCH      = 100;
+const API         = 'https://trafikkdata-api.atlas.vegvesen.no/';
+const TRP         = '04904V971774';   // Svinesundsbrua (ny, E6)
+const TRP_GAMMEL  = '35229V971507';   // Svinesund (gammel bru, FV118)
+const PERSONBIL   = '[..,5.6)';
+const DIR_INN     = 'Sarpsborg';
+const DIR_UT      = 'Svinesund (Riksgrensen)';  // ny E6
+const DIR_UT_G    = 'Svinesund';                // gammel FV118
+const BATCH       = 100;
 
 /*
  * Toppdag 2025 identifisert ved å hente alle 365 dager via byDay-API-et:
@@ -692,6 +698,8 @@ const CLR_INN    = '#5ba3f5';
 const CLR_UT     = '#f07070';
 const CLR_AVG    = '#3d5a78';
 const CLR_PEAK   = '#f0b429';
+const CLR_INN2   = '#34d399';  // gammel bru inn (emerald)
+const CLR_UT2    = '#fb923c';  // gammel bru ut  (orange)
 
 /* ── Utilities ──────────────────────────────────────────────── */
 const pad = n => String(n).padStart(2, '0');
@@ -761,11 +769,11 @@ function dirVol(byDir,heading) {
   return d?personbilVol(d.byLengthRange):null;
 }
 
-async function fetchAllEdges(period,from,to) {
+async function fetchAllEdges(period,from,to,trp=TRP) {
   const edges=[];let after=null,hasNext=true;
   while(hasNext){
     const aArg=after?`, after: "${after}"`:'';
-    const gql=`{ trafficData(trafficRegistrationPointId:"${TRP}"){volume{
+    const gql=`{ trafficData(trafficRegistrationPointId:"${trp}"){volume{
       ${period}(from:"${from}",to:"${to}",first:${BATCH}${aArg}){
         edges{node{from byDirection{heading byLengthRange{
           lengthRange{representation} total{volumeNumbers{volume}}
@@ -784,12 +792,12 @@ async function fetchAllEdges(period,from,to) {
   return edges;
 }
 
-function edgesToHourArrays(edges) {
+function edgesToHourArrays(edges,dirInn=DIR_INN,dirUt=DIR_UT) {
   const inn=new Array(24).fill(null),ut=new Array(24).fill(null);
   for(const e of edges){
     const h=parseInt(e.node.from.slice(11,13),10);
-    inn[h]=dirVol(e.node.byDirection,DIR_INN);
-    ut[h] =dirVol(e.node.byDirection,DIR_UT);
+    inn[h]=dirVol(e.node.byDirection,dirInn);
+    ut[h] =dirVol(e.node.byDirection,dirUt);
   }
   return {inn,ut};
 }
@@ -797,14 +805,14 @@ function edgesToHourArrays(edges) {
 /* ── Hourly state ───────────────────────────────────────────── */
 const H = {
   selectedDate : todayISO(),
-  dateCache    : {},
-  annualAvg    : null,
+  dateCache    : {},          // date → {inn,ut,inn2,ut2}
+  annualAvg    : null,        // {inn,ut}  ny E6
+  annualAvg2   : null,        // {inn,ut}  gammel FV118
   peakDay      : null,
 };
 
-async function fetchAnnualAvg() {
-  if (H.annualAvg) return;
-  const gql = `{ trafficData(trafficRegistrationPointId:"${TRP}"){volume{average{hourOfDay{
+async function fetchAnnualAvgFor(trpId, dirUt) {
+  const gql = `{ trafficData(trafficRegistrationPointId:"${trpId}"){volume{average{hourOfDay{
     byYear(year:2025){byDirection{heading byLengthRange{
       lengthRange{representation} total{startOfHour volume{average}}
     }}}
@@ -815,7 +823,8 @@ async function fetchAnnualAvg() {
   const byYear = json.data.trafficData.volume.average.hourOfDay.byYear;
   const avg    = {inn:new Array(24).fill(null), ut:new Array(24).fill(null)};
   for(const dir of byYear.byDirection){
-    const key = dir.heading===DIR_INN?'inn':'ut';
+    const key = dir.heading===DIR_INN?'inn':(dir.heading===dirUt?'ut':null);
+    if(!key) continue;
     for(const lr of dir.byLengthRange){
       if(lr.lengthRange.representation===PERSONBIL){
         for(const h of lr.total){
@@ -825,8 +834,11 @@ async function fetchAnnualAvg() {
       }
     }
   }
-  H.annualAvg = avg;
+  return avg;
 }
+
+async function fetchAnnualAvg()  { if(!H.annualAvg)  H.annualAvg  = await fetchAnnualAvgFor(TRP,        DIR_UT); }
+async function fetchAnnualAvg2() { if(!H.annualAvg2) H.annualAvg2 = await fetchAnnualAvgFor(TRP_GAMMEL, DIR_UT_G); }
 
 async function fetchPeakDayHours() {
   if (H.peakDay) return;
@@ -841,16 +853,22 @@ async function fetchPeakDayHours() {
 
 async function fetchDayHours(date) {
   if (H.dateCache[date]) return;
-  const tz    = tzOff();
-  const edges = await fetchAllEdges('byHour',`${date}T00:00:00${tz}`,`${date}T23:59:59${tz}`);
-  H.dateCache[date] = edgesToHourArrays(edges);
+  const tz = tzOff();
+  const from = `${date}T00:00:00${tz}`, to = `${date}T23:59:59${tz}`;
+  const [edges, edges2] = await Promise.all([
+    fetchAllEdges('byHour', from, to, TRP),
+    fetchAllEdges('byHour', from, to, TRP_GAMMEL),
+  ]);
+  const d1 = edgesToHourArrays(edges,  DIR_INN, DIR_UT);
+  const d2 = edgesToHourArrays(edges2, DIR_INN, DIR_UT_G);
+  H.dateCache[date] = { inn:d1.inn, ut:d1.ut, inn2:d2.inn, ut2:d2.ut };
 }
 
 function renderHourlyChart(date) {
-  const data   = H.dateCache[date] || {inn:Array(24).fill(null),ut:Array(24).fill(null)};
-  const avg    = H.annualAvg        || {inn:Array(24).fill(null),ut:Array(24).fill(null)};
-  const peak   = H.peakDay          || {inn:Array(24).fill(null),ut:Array(24).fill(null),label:'Toppdag 2025'};
-  const today  = todayISO();
+  const data  = H.dateCache[date] || {inn:Array(24).fill(null),ut:Array(24).fill(null),inn2:Array(24).fill(null),ut2:Array(24).fill(null)};
+  const avg   = H.annualAvg       || {inn:Array(24).fill(null),ut:Array(24).fill(null)};
+  const peak  = H.peakDay         || {inn:Array(24).fill(null),ut:Array(24).fill(null),label:'Toppdag 2025'};
+  const today = todayISO();
 
   document.getElementById('date-nav-label').textContent = fmtDateLong(date);
   document.getElementById('date-nav-sub').textContent   = date===today ? 'I dag' : '';
@@ -859,18 +877,23 @@ function renderHourlyChart(date) {
   document.getElementById('peak-label-inn').textContent = peak.label;
   document.getElementById('peak-label-ut').textContent  = peak.label;
 
-  const innTotal = data.inn.reduce((s,v)=>s+(v??0),0);
-  const utTotal  = data.ut.reduce((s,v)=>s+(v??0),0);
-  const innAvg   = avg.inn.reduce((s,v)=>s+(v??0),0);
-  const utAvg    = avg.ut.reduce((s,v)=>s+(v??0),0);
-  document.getElementById('stat-h-inn').textContent = fmtNum(innTotal);
-  document.getElementById('stat-h-ut').textContent  = fmtNum(utTotal);
-  document.getElementById('cmp-h-inn').innerHTML    = `Årssnitt 2025: ${fmtNum(innAvg)} ${innTotal?pctBadge(innTotal,innAvg):''}`;
-  document.getElementById('cmp-h-ut').innerHTML     = `Årssnitt 2025: ${fmtNum(utAvg)} ${utTotal?pctBadge(utTotal,utAvg):''}`;
+  const innTotal  = data.inn.reduce((s,v)=>s+(v??0),0);
+  const utTotal   = data.ut.reduce((s,v)=>s+(v??0),0);
+  const inn2Total = (data.inn2||[]).reduce((s,v)=>s+(v??0),0);
+  const ut2Total  = (data.ut2||[]).reduce((s,v)=>s+(v??0),0);
+  const innAvg    = avg.inn.reduce((s,v)=>s+(v??0),0);
+  const utAvg     = avg.ut.reduce((s,v)=>s+(v??0),0);
+
+  document.getElementById('stat-h-inn').textContent  = fmtNum(innTotal);
+  document.getElementById('stat-h-ut').textContent   = fmtNum(utTotal);
+  document.getElementById('stat-h-inn2').innerHTML   = inn2Total ? `FV118: <strong style="color:${CLR_INN2}">${fmtNum(inn2Total)}</strong>` : '';
+  document.getElementById('stat-h-ut2').innerHTML    = ut2Total  ? `FV118: <strong style="color:${CLR_UT2}">${fmtNum(ut2Total)}</strong>`  : '';
+  document.getElementById('cmp-h-inn').innerHTML     = `Årssnitt E6 2025: ${fmtNum(innAvg)} ${innTotal?pctBadge(innTotal,innAvg):''}`;
+  document.getElementById('cmp-h-ut').innerHTML      = `Årssnitt E6 2025: ${fmtNum(utAvg)} ${utTotal?pctBadge(utTotal,utAvg):''}`;
 
   const hours = Array.from({length:24},(_,i)=>pad(i)+':00');
-  make3LineChart('chart-inn', hours, data.inn, avg.inn, peak.inn, 'Inn i Norge', CLR_INN, peak.label);
-  make3LineChart('chart-ut',  hours, data.ut,  avg.ut,  peak.ut,  'Ut av Norge', CLR_UT,  peak.label);
+  make3LineChart('chart-inn', hours, data.inn, data.inn2, avg.inn, peak.inn, 'E6 inn i Norge', 'FV118 inn', CLR_INN, CLR_INN2, peak.label);
+  make3LineChart('chart-ut',  hours, data.ut,  data.ut2,  avg.ut,  peak.ut,  'E6 ut av Norge', 'FV118 ut',  CLR_UT,  CLR_UT2,  peak.label);
 }
 
 async function loadHourlyForDate(date) {
@@ -879,7 +902,7 @@ async function loadHourlyForDate(date) {
   if (chartsEl.style.display==='none') { loadEl.style.display=''; }
 
   try {
-    await Promise.all([fetchAnnualAvg(), fetchPeakDayHours(), fetchDayHours(date)]);
+    await Promise.all([fetchAnnualAvg(), fetchAnnualAvg2(), fetchPeakDayHours(), fetchDayHours(date)]);
     loadEl.style.display='none';
     show('sum-hourly'); show('charts-hourly'); show('note-hourly');
     renderHourlyChart(date);
@@ -979,15 +1002,17 @@ async function loadMonthly() {
 /* ── Chart factories ────────────────────────────────────────── */
 const charts={};
 
-function make3LineChart(id,labels,actual,annualAvg,peakDay,actLabel,color,peakLabel) {
+function make3LineChart(id,labels,actual,actual2,annualAvg,peakDay,actLabel,act2Label,color,color2,peakLabel) {
   if(charts[id]) charts[id].destroy();
+  const datasets = [
+    {label:actLabel,        data:actual,    borderColor:color,    backgroundColor:color+'18',    borderWidth:2.5, pointRadius:2,   tension:.2, fill:true,  spanGaps:false, order:1},
+    {label:act2Label,       data:actual2,   borderColor:color2,   backgroundColor:color2+'14',   borderWidth:2,   pointRadius:1.5, borderDash:[6,3], tension:.2, fill:false, spanGaps:true, order:2},
+    {label:'Årssnitt E6 2025', data:annualAvg, borderColor:CLR_AVG, backgroundColor:'transparent', borderWidth:1.5, borderDash:[5,4], pointRadius:0, tension:.2, fill:false, spanGaps:true, order:4},
+    {label:peakLabel,       data:peakDay,   borderColor:CLR_PEAK, backgroundColor:'transparent', borderWidth:1.5, borderDash:[2,4], pointRadius:0, tension:.2, fill:false, spanGaps:true, order:3},
+  ];
   charts[id]=new Chart(document.getElementById(id),{
     type:'line',
-    data:{labels,datasets:[
-      {label:actLabel,        data:actual,    borderColor:color,   backgroundColor:color+'18', borderWidth:2.5, pointRadius:2,   tension:.2, fill:true,  spanGaps:false, order:1},
-      {label:'Årssnitt 2025', data:annualAvg, borderColor:CLR_AVG, backgroundColor:'transparent', borderWidth:1.5, borderDash:[5,4], pointRadius:0, tension:.2, fill:false, spanGaps:true, order:3},
-      {label:peakLabel,       data:peakDay,   borderColor:CLR_PEAK,backgroundColor:'transparent', borderWidth:1.5, borderDash:[2,4], pointRadius:0, tension:.2, fill:false, spanGaps:true, order:2}
-    ]},
+    data:{labels,datasets},
     options:{
       responsive:true,maintainAspectRatio:false,animation:{duration:200},
       interaction:{mode:'index',intersect:false},
