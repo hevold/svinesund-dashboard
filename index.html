@@ -432,6 +432,79 @@
       from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+
+    /* ── Mobile (≤ 600px) ────────────────────────────────────── */
+    @media (max-width: 600px) {
+      header { padding: .8rem .75rem .75rem; }
+
+      .header-inner { gap: .5rem; }
+
+      .header-left { gap: .5rem; min-width: 0; }
+
+      .header-mascot {
+        height: clamp(1.7rem, 8.5vw, 2.6rem);
+      }
+
+      header h1 {
+        font-size: clamp(1.4rem, 7.5vw, 2.6rem);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: clip;
+      }
+
+      .header-right {
+        flex-direction: row;
+        align-items: center;
+        gap: .5rem;
+        flex-shrink: 0;
+      }
+
+      .header-trp { display: none; }
+
+      nav button {
+        font-size: .67rem;
+        padding: .8rem .25rem;
+        letter-spacing: .07em;
+      }
+
+      main { padding: .85rem .65rem 2rem; gap: .6rem; }
+
+      .date-nav { padding: .6rem .7rem; gap: .3rem; }
+
+      .date-nav strong { font-size: .76rem; }
+
+      .nav-arrow { padding: .35rem .6rem; font-size: .9rem; }
+
+      #btn-today { font-size: .6rem; padding: .2rem .5rem; }
+
+      .summary-grid { gap: .5rem; }
+
+      .summary-grid article { padding: .8rem .85rem .8rem 1rem; }
+
+      .value { font-size: 1.75rem; }
+
+      .compare { font-size: .63rem; }
+
+      .chart-card { padding: .85rem .8rem .7rem; }
+
+      .chart-wrap       { height: 210px; }
+      .chart-wrap--tall { height: 260px; }
+
+      .legend-row { font-size: .62rem; gap: .55rem; margin-bottom: .5rem; }
+
+      .note { font-size: .6rem; }
+
+      footer { padding: 1.2rem .75rem 2rem; font-size: .62rem; }
+    }
+
+    /* ── Very small (≤ 380px) ────────────────────────────────── */
+    @media (max-width: 380px) {
+      .header-mascot { display: none; }
+
+      header h1 { font-size: clamp(1.6rem, 9vw, 2.2rem); }
+
+      .summary-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
