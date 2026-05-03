@@ -4,88 +4,442 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Harryhandel-trackeren</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      --inn: #1d4ed8; --ut: #b91c1c;
-      --peak: #d97706; --avg: #64748b;
-      --bg: #f1f5f9; --card: #fff;
-      --border: #e2e8f0; --text: #0f172a; --muted: #64748b; --r: 10px;
+      --bg:          #070d18;
+      --surface:     #0c1829;
+      --surface-2:   #111f35;
+      --border:      #1a3050;
+      --border-hi:   #2a4a70;
+
+      --text:        #dde6f0;
+      --muted:       #5a7a9a;
+      --subtle:      #243550;
+
+      --inn:         #5ba3f5;
+      --inn-fill:    rgba(91,163,245,.09);
+      --ut:          #f07070;
+      --ut-fill:     rgba(240,112,112,.09);
+      --avg:         #3d5a78;
+      --peak:        #f0b429;
+      --peak-fill:   rgba(240,180,41,.09);
+      --accent:      #f0b429;
+      --green:       #4ade80;
+      --red:         #f87171;
+
+      --r: 8px;
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-    header { background: #1e3a5f; color: #fff; padding: 1.4rem 1.25rem 1.1rem; }
-    header h1 { font-size: 1.45rem; font-weight: 700; letter-spacing: -.02em; }
-    header p  { margin-top: .25rem; font-size: .82rem; color: #94a3b8; }
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image:
+        linear-gradient(rgba(26,48,80,.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(26,48,80,.12) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
 
-    nav { background: #fff; border-bottom: 1px solid var(--border); display: flex; }
-    nav button { flex:1; padding:.85rem .5rem; font-size:.88rem; font-weight:500; border:none; background:none; cursor:pointer; color:var(--muted); border-bottom:3px solid transparent; transition:color .15s,border-color .15s; }
-    nav button[aria-selected="true"] { color:#1e3a5f; border-bottom-color:var(--inn); }
+    /* Top accent stripe */
+    body::before {
+      content: '';
+      display: block;
+      height: 3px;
+      background: linear-gradient(90deg, var(--inn) 0%, var(--accent) 50%, var(--ut) 100%);
+    }
 
-    main { max-width:1080px; margin:0 auto; padding:1.1rem 1rem 2rem; display:flex; flex-direction:column; gap:.9rem; }
+    /* ── Header ──────────────────────────────────────────────── */
+    header {
+      background: rgba(7,13,24,.96);
+      border-bottom: 1px solid var(--border);
+      padding: 1.6rem 1.5rem 1.3rem;
+      animation: fadeDown .5s ease both;
+    }
+
+    .header-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.6rem, 7vw, 4.2rem);
+      letter-spacing: .04em;
+      color: #fff;
+      line-height: .95;
+    }
+
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: .45rem;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      font-family: 'DM Mono', monospace;
+      font-size: .7rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse-dot 2.2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(240,180,41,.5); }
+      50%       { opacity: .6; box-shadow: 0 0 0 5px rgba(240,180,41,0); }
+    }
+
+    .header-trp {
+      font-family: 'DM Mono', monospace;
+      font-size: .68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    /* ── Nav ─────────────────────────────────────────────────── */
+    nav {
+      background: rgba(7,13,24,.96);
+      border-bottom: 1px solid var(--border);
+      animation: fadeDown .5s ease .07s both;
+    }
+
+    .nav-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: flex;
+    }
+
+    nav button {
+      flex: 1;
+      padding: .9rem .5rem;
+      font-family: 'DM Mono', monospace;
+      font-size: .75rem;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+
+    nav button[aria-selected="true"] {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    nav button:hover:not([aria-selected="true"]) {
+      color: var(--text);
+    }
+
+    /* ── Main layout ─────────────────────────────────────────── */
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 3rem;
+      display: flex;
+      flex-direction: column;
+      gap: .9rem;
+    }
+
     section { display: contents; }
     section[hidden] { display: none; }
 
-    /* Date nav */
-    .date-nav { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:.7rem 1rem; display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
-    .date-nav-center { text-align:center; flex:1; }
-    .date-nav strong { font-size:.95rem; display:block; }
-    .date-nav small  { font-size:.75rem; color:var(--muted); }
-    .date-nav .nav-arrow { font-size:1.25rem; border:none; background:none; cursor:pointer; color:#1e3a5f; padding:.3rem .7rem; border-radius:6px; }
-    .date-nav .nav-arrow:disabled { opacity:.2; cursor:default; }
-    #btn-today { font-size:.75rem; color:var(--inn); background:none; border:1px solid var(--inn); border-radius:20px; padding:.2rem .65rem; cursor:pointer; white-space:nowrap; }
-    #btn-today[disabled] { display:none; }
+    /* ── Date nav ────────────────────────────────────────────── */
+    .date-nav {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: .8rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .5rem;
+      animation: fadeUp .45s ease .12s both;
+    }
 
-    /* Summary cards */
-    .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
-    .summary-grid article { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:.9rem 1.1rem; }
-    .summary-grid h2 { font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
-    .value { font-size:1.9rem; font-weight:700; margin-top:.2rem; line-height:1; }
-    .inn .value { color:var(--inn); }
-    .ut  .value { color:var(--ut);  }
-    .compare { font-size:.76rem; color:var(--muted); margin-top:.3rem; }
-    .compare .pos { color:#16a34a; font-weight:600; }
-    .compare .neg { color:#dc2626; font-weight:600; }
+    .date-nav-center {
+      text-align: center;
+      flex: 1;
+    }
 
-    /* Charts grid */
-    .charts-grid { display:grid; gap:.75rem; grid-template-columns:1fr; }
-    @media (min-width:700px) { .charts-grid { grid-template-columns:1fr 1fr; } }
-    .chart-card { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:1.1rem 1.1rem 1rem; }
-    .chart-card h2 { font-size:.8rem; font-weight:600; color:var(--muted); margin-bottom:.6rem; }
-    .chart-wrap       { position:relative; height:280px; }
-    .chart-wrap--tall { position:relative; height:360px; }
+    .date-nav strong {
+      font-family: 'DM Mono', monospace;
+      font-size: .9rem;
+      font-weight: 500;
+      display: block;
+      color: var(--text);
+      letter-spacing: .02em;
+      text-transform: uppercase;
+    }
 
-    /* Legend */
-    .legend-row { display:flex; gap:.9rem; flex-wrap:wrap; margin-bottom:.65rem; font-size:.79rem; }
-    .legend-item { display:flex; align-items:center; gap:.35rem; }
-    .leg-solid  { width:18px; height:3px; border-radius:2px; flex-shrink:0; }
-    .leg-dashed { width:18px; height:0; border-top:2px dashed var(--avg); flex-shrink:0; }
-    .leg-dotted { width:18px; height:0; border-top:2px dotted var(--peak); flex-shrink:0; }
-    .hol-bar { width:3px; height:14px; border-radius:1px; flex-shrink:0; }
+    .date-nav small {
+      font-family: 'DM Mono', monospace;
+      font-size: .68rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
 
-    /* Loading / error */
-    .status { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:2.5rem 1rem; text-align:center; color:var(--muted); font-size:.88rem; }
-    .spinner { display:inline-block; width:1.1rem; height:1.1rem; border:2px solid var(--border); border-top-color:var(--inn); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:.35rem; }
-    @keyframes spin { to { transform:rotate(360deg); } }
+    .nav-arrow {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      font-size: 1rem;
+      padding: .4rem .85rem;
+      transition: border-color .15s, color .15s;
+    }
 
-    .note { font-size:.75rem; color:var(--muted); }
-    footer { text-align:center; padding:0 1rem 2rem; font-size:.76rem; color:var(--muted); line-height:1.9; }
-    footer a { color:var(--inn); }
+    .nav-arrow:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .nav-arrow:disabled { opacity: .22; cursor: default; }
+
+    #btn-today {
+      font-family: 'DM Mono', monospace;
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--accent);
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: 20px;
+      padding: .25rem .75rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s, color .15s;
+    }
+
+    #btn-today:hover { background: var(--accent); color: var(--bg); }
+    #btn-today[disabled] { display: none; }
+
+    /* ── Summary cards ───────────────────────────────────────── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .75rem;
+      animation: fadeUp .45s ease .17s both;
+    }
+
+    .summary-grid article {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1.1rem 1.3rem 1.1rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-grid article::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+    }
+
+    .summary-grid article.inn::before { background: var(--inn); }
+    .summary-grid article.ut::before  { background: var(--ut);  }
+
+    .summary-grid h2 {
+      font-family: 'DM Mono', monospace;
+      font-size: .65rem;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--muted);
+      margin-bottom: .4rem;
+    }
+
+    .value {
+      font-family: 'DM Mono', monospace;
+      font-size: 2.2rem;
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: -.02em;
+    }
+
+    .inn .value { color: var(--inn); }
+    .ut  .value { color: var(--ut);  }
+
+    .compare {
+      font-family: 'DM Mono', monospace;
+      font-size: .7rem;
+      color: var(--muted);
+      margin-top: .4rem;
+    }
+
+    .compare .pos { color: var(--green); font-weight: 500; }
+    .compare .neg { color: var(--red);   font-weight: 500; }
+
+    /* ── Chart grid ──────────────────────────────────────────── */
+    .charts-grid {
+      display: grid;
+      gap: .75rem;
+      grid-template-columns: 1fr;
+    }
+
+    @media (min-width: 700px) {
+      .charts-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 1.15rem 1.15rem .9rem;
+      animation: fadeUp .45s ease .22s both;
+    }
+
+    .chart-card h2 {
+      font-family: 'DM Mono', monospace;
+      font-size: .68rem;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+      margin-bottom: .65rem;
+    }
+
+    .chart-wrap       { position: relative; height: 280px; }
+    .chart-wrap--tall { position: relative; height: 360px; }
+
+    /* ── Legend ──────────────────────────────────────────────── */
+    .legend-row {
+      display: flex;
+      gap: .85rem;
+      flex-wrap: wrap;
+      margin-bottom: .65rem;
+      font-family: 'DM Mono', monospace;
+      font-size: .68rem;
+      color: var(--muted);
+    }
+
+    .legend-item { display: flex; align-items: center; gap: .35rem; }
+    .leg-solid   { width: 18px; height: 2px; border-radius: 1px; flex-shrink: 0; }
+    .leg-dashed  { width: 18px; height: 0; border-top: 2px dashed var(--avg); flex-shrink: 0; }
+    .leg-dotted  { width: 18px; height: 0; border-top: 2px dotted var(--peak); flex-shrink: 0; }
+    .hol-bar     { width: 3px; height: 14px; border-radius: 1px; flex-shrink: 0; }
+
+    /* ── Loading / error ─────────────────────────────────────── */
+    .status {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 3rem 1rem;
+      text-align: center;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: .5rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .note {
+      font-family: 'DM Mono', monospace;
+      font-size: .68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      line-height: 1.8;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 1.5rem 1rem 2.5rem;
+      font-family: 'DM Mono', monospace;
+      font-size: .68rem;
+      color: var(--muted);
+      line-height: 2;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      border-top: 1px solid var(--border);
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Animations ──────────────────────────────────────────── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>Harryhandel-trackeren</h1>
-  <p>Personbiltrafikk over Svinesundsbrua · E6 · TRP 04904V971774 · Halden</p>
+  <div class="header-inner">
+    <div>
+      <h1>Harryhandel-trackeren</h1>
+    </div>
+    <div class="header-right">
+      <span class="live-badge"><span class="live-dot"></span>Åpne data · Live</span>
+      <span class="header-trp">E6 · Svinesundsbrua · Halden · TRP 04904V971774</span>
+    </div>
+  </div>
 </header>
 
 <nav aria-label="Velg visning">
-  <button id="btn-hourly"  aria-selected="true"  onclick="switchTab('hourly')">Timetrafikk</button>
-  <button id="btn-daily"   aria-selected="false" onclick="switchTab('daily')">Dagsvisning</button>
-  <button id="btn-monthly" aria-selected="false" onclick="switchTab('monthly')">Månedstrafikk</button>
+  <div class="nav-inner">
+    <button id="btn-hourly"  aria-selected="true"  onclick="switchTab('hourly')">Timetrafikk</button>
+    <button id="btn-daily"   aria-selected="false" onclick="switchTab('daily')">Dagsvisning</button>
+    <button id="btn-monthly" aria-selected="false" onclick="switchTab('monthly')">Månedstrafikk</button>
+  </div>
 </nav>
 
 <main>
@@ -153,12 +507,12 @@
       <article class="inn">
         <h2>Toppdag inn i Norge</h2>
         <p class="value" id="stat-peak-inn">–</p>
-        <small id="stat-peak-inn-date">personbiler</small>
+        <small id="stat-peak-inn-date" style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">personbiler</small>
       </article>
       <article class="ut">
         <h2>Toppdag ut av Norge</h2>
         <p class="value" id="stat-peak-ut">–</p>
-        <small id="stat-peak-ut-date">personbiler</small>
+        <small id="stat-peak-ut-date" style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">personbiler</small>
       </article>
     </div>
 
@@ -168,27 +522,27 @@
       <div class="chart-card">
         <h2>Inn i Norge · daglig</h2>
         <div class="legend-row">
-          <span class="legend-item"><span class="leg-solid" style="background:rgba(29,78,216,.8)"></span>Faktisk</span>
+          <span class="legend-item"><span class="leg-solid" style="background:var(--inn)"></span>Faktisk</span>
           <span class="legend-item"><span class="leg-dashed"></span>Snitt ukedag</span>
-          <span class="legend-item"><span class="hol-bar" style="background:rgba(185,28,28,.35)"></span>Helligdag</span>
-          <span class="legend-item"><span class="hol-bar" style="background:rgba(185,28,28,.9)"></span>Skjærtorsdag</span>
+          <span class="legend-item"><span class="hol-bar" style="background:rgba(240,112,112,.35)"></span>Helligdag</span>
+          <span class="legend-item"><span class="hol-bar" style="background:rgba(240,180,41,.9)"></span>Skjærtorsdag</span>
         </div>
         <div class="chart-wrap--tall"><canvas id="chart-daily-inn"></canvas></div>
       </div>
       <div class="chart-card">
         <h2>Ut av Norge · daglig</h2>
         <div class="legend-row">
-          <span class="legend-item"><span class="leg-solid" style="background:rgba(185,28,28,.8)"></span>Faktisk</span>
+          <span class="legend-item"><span class="leg-solid" style="background:var(--ut)"></span>Faktisk</span>
           <span class="legend-item"><span class="leg-dashed"></span>Snitt ukedag</span>
-          <span class="legend-item"><span class="hol-bar" style="background:rgba(185,28,28,.35)"></span>Helligdag</span>
-          <span class="legend-item"><span class="hol-bar" style="background:rgba(185,28,28,.9)"></span>Skjærtorsdag</span>
+          <span class="legend-item"><span class="hol-bar" style="background:rgba(240,112,112,.35)"></span>Helligdag</span>
+          <span class="legend-item"><span class="hol-bar" style="background:rgba(240,180,41,.9)"></span>Skjærtorsdag</span>
         </div>
         <div class="chart-wrap--tall"><canvas id="chart-daily-ut"></canvas></div>
       </div>
     </div>
 
     <p class="note" id="note-daily" style="display:none">
-      Personbil = kjøretøy &lt; 5,6 m &nbsp;·&nbsp; Stiplet = ukedagssnitt fra historikken &nbsp;·&nbsp; Røde streker = norske helligdager
+      Personbil = kjøretøy &lt; 5,6 m &nbsp;·&nbsp; Stiplet = ukedagssnitt fra historikken &nbsp;·&nbsp; Markerte streker = norske helligdager
     </p>
   </section>
 
@@ -198,12 +552,12 @@
       <article class="inn">
         <h2>Inn i Norge · 12 mnd</h2>
         <p class="value" id="stat-monthly-inn">–</p>
-        <small>personbiler totalt</small>
+        <small style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">personbiler totalt</small>
       </article>
       <article class="ut">
         <h2>Ut av Norge · 12 mnd</h2>
         <p class="value" id="stat-monthly-ut">–</p>
-        <small>personbiler totalt</small>
+        <small style="font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">personbiler totalt</small>
       </article>
     </div>
     <div id="loading-monthly" class="status"><span class="spinner"></span>Henter måneddata…</div>
@@ -224,6 +578,12 @@
 </footer>
 
 <script>
+/* ── Chart.js defaults for dark theme ───────────────────────── */
+Chart.defaults.color           = '#5a7a9a';
+Chart.defaults.borderColor     = 'rgba(26,48,80,.45)';
+Chart.defaults.font.family     = "'DM Mono', monospace";
+Chart.defaults.font.size       = 11;
+
 /* ── Config ─────────────────────────────────────────────────── */
 const API        = 'https://trafikkdata-api.atlas.vegvesen.no/';
 const TRP        = '04904V971774';
@@ -238,6 +598,12 @@ const BATCH      = 100;
  */
 const PEAK_DATE  = '2025-07-13';
 const PEAK_TOTAL = 23928;
+
+/* Dark theme colors */
+const CLR_INN    = '#5ba3f5';
+const CLR_UT     = '#f07070';
+const CLR_AVG    = '#3d5a78';
+const CLR_PEAK   = '#f0b429';
 
 /* ── Utilities ──────────────────────────────────────────────── */
 const pad = n => String(n).padStart(2, '0');
@@ -343,12 +709,11 @@ function edgesToHourArrays(edges) {
 /* ── Hourly state ───────────────────────────────────────────── */
 const H = {
   selectedDate : todayISO(),
-  dateCache    : {},          // date → {inn:[24], ut:[24]}
-  annualAvg    : null,        // {inn:[24], ut:[24]}  – from API average endpoint
-  peakDay      : null,        // {inn:[24], ut:[24], label}
+  dateCache    : {},
+  annualAvg    : null,
+  peakDay      : null,
 };
 
-/* Fetch 2025 annual average from pre-computed API endpoint (1 call) */
 async function fetchAnnualAvg() {
   if (H.annualAvg) return;
   const gql = `{ trafficData(trafficRegistrationPointId:"${TRP}"){volume{average{hourOfDay{
@@ -375,7 +740,6 @@ async function fetchAnnualAvg() {
   H.annualAvg = avg;
 }
 
-/* Fetch hourly data for peak day – identified as 2025-07-13 (1 call) */
 async function fetchPeakDayHours() {
   if (H.peakDay) return;
   const edges = await fetchAllEdges('byHour',`${PEAK_DATE}T00:00:00+02:00`,`${PEAK_DATE}T23:59:59+02:00`);
@@ -387,7 +751,6 @@ async function fetchPeakDayHours() {
   };
 }
 
-/* Fetch one day's hourly data (1 call, cached) */
 async function fetchDayHours(date) {
   if (H.dateCache[date]) return;
   const tz    = tzOff();
@@ -401,7 +764,6 @@ function renderHourlyChart(date) {
   const peak   = H.peakDay          || {inn:Array(24).fill(null),ut:Array(24).fill(null),label:'Toppdag 2025'};
   const today  = todayISO();
 
-  /* Nav UI */
   document.getElementById('date-nav-label').textContent = fmtDateLong(date);
   document.getElementById('date-nav-sub').textContent   = date===today ? 'I dag' : '';
   document.getElementById('btn-next').disabled   = date >= today;
@@ -409,7 +771,6 @@ function renderHourlyChart(date) {
   document.getElementById('peak-label-inn').textContent = peak.label;
   document.getElementById('peak-label-ut').textContent  = peak.label;
 
-  /* Summary totals */
   const innTotal = data.inn.reduce((s,v)=>s+(v??0),0);
   const utTotal  = data.ut.reduce((s,v)=>s+(v??0),0);
   const innAvg   = avg.inn.reduce((s,v)=>s+(v??0),0);
@@ -420,8 +781,8 @@ function renderHourlyChart(date) {
   document.getElementById('cmp-h-ut').innerHTML     = `Årssnitt 2025: ${fmtNum(utAvg)} ${utTotal?pctBadge(utTotal,utAvg):''}`;
 
   const hours = Array.from({length:24},(_,i)=>pad(i)+':00');
-  make3LineChart('chart-inn', hours, data.inn, avg.inn, peak.inn, 'Inn i Norge', 'var(--inn)', peak.label);
-  make3LineChart('chart-ut',  hours, data.ut,  avg.ut,  peak.ut,  'Ut av Norge', 'var(--ut)',  peak.label);
+  make3LineChart('chart-inn', hours, data.inn, avg.inn, peak.inn, 'Inn i Norge', CLR_INN, peak.label);
+  make3LineChart('chart-ut',  hours, data.ut,  avg.ut,  peak.ut,  'Ut av Norge', CLR_UT,  peak.label);
 }
 
 async function loadHourlyForDate(date) {
@@ -471,7 +832,6 @@ async function loadDaily() {
       byDate[date].inn+=dirVol(e.node.byDirection,DIR_INN)??0;
       byDate[date].ut +=dirVol(e.node.byDirection,DIR_UT) ??0;
     }
-    /* Weekday averages */
     const wdInn=Array(7).fill(0),wdUt=Array(7).fill(0),wdN=Array(7).fill(0);
     for(const [d,v] of Object.entries(byDate)){
       const wd=new Date(d+'T12:00:00').getDay();
@@ -479,7 +839,6 @@ async function loadDaily() {
     }
     const wdAvgInn=wdInn.map((t,i)=>wdN[i]?Math.round(t/wdN[i]):null);
     const wdAvgUt =wdUt.map((t,i) =>wdN[i]?Math.round(t/wdN[i]):null);
-    /* Filter last 12 complete months */
     const thisMonth=toLocalISO(now).slice(0,7);
     const cutoff=isoDate((()=>{const d=new Date(now);d.setMonth(d.getMonth()-12);d.setDate(1);return d;})());
     const filtered=Object.keys(byDate).sort().filter(d=>d>=cutoff&&d.slice(0,7)!==thisMonth);
@@ -487,19 +846,17 @@ async function loadDaily() {
     const utData =filtered.map(d=>byDate[d].ut);
     const innAvg =filtered.map(d=>wdAvgInn[new Date(d+'T12:00:00').getDay()]);
     const utAvg  =filtered.map(d=>wdAvgUt[new Date(d+'T12:00:00').getDay()]);
-    /* Peak days */
     const pi=innData.reduce((mi,v,i,a)=>(v??0)>(a[mi]??0)?i:mi,0);
     const pu=utData.reduce((mi,v,i,a) =>(v??0)>(a[mi]??0)?i:mi,0);
     document.getElementById('stat-peak-inn').textContent     =fmtNum(innData[pi]);
     document.getElementById('stat-peak-inn-date').textContent=fmtDateLong(filtered[pi]);
     document.getElementById('stat-peak-ut').textContent      =fmtNum(utData[pu]);
     document.getElementById('stat-peak-ut-date').textContent =fmtDateLong(filtered[pu]);
-    /* Holidays */
     const holMap=buildHolidayMap(new Date(filtered[0]+'T12:00:00'),new Date(filtered[filtered.length-1]+'T12:00:00'));
     loadEl.style.display='none';
     show('sum-daily'); show('charts-daily'); show('note-daily');
-    makeDailyChart('chart-daily-inn',filtered,innData,innAvg,'Inn i Norge','rgba(29,78,216,.85)','rgba(29,78,216,.08)',holMap);
-    makeDailyChart('chart-daily-ut', filtered,utData, utAvg, 'Ut av Norge','rgba(185,28,28,.85)','rgba(185,28,28,.07)',holMap);
+    makeDailyChart('chart-daily-inn',filtered,innData,innAvg,'Inn i Norge',`${CLR_INN}d9`,`${CLR_INN}14`,holMap);
+    makeDailyChart('chart-daily-ut', filtered,utData, utAvg, 'Ut av Norge',`${CLR_UT}d9`, `${CLR_UT}14`, holMap);
     loaded.daily=true;
   } catch(err){showError(loadEl,err.message);}
 }
@@ -539,20 +896,29 @@ function make3LineChart(id,labels,actual,annualAvg,peakDay,actLabel,color,peakLa
   charts[id]=new Chart(document.getElementById(id),{
     type:'line',
     data:{labels,datasets:[
-      {label:actLabel,   data:actual,    borderColor:color,     backgroundColor:color+'18', borderWidth:2.5, pointRadius:2,   tension:.2, fill:true,  spanGaps:false, order:1},
-      {label:'Årssnitt 2025', data:annualAvg, borderColor:'#94a3b8', backgroundColor:'transparent', borderWidth:1.5, borderDash:[5,4], pointRadius:0, tension:.2, fill:false, spanGaps:true, order:3},
-      {label:peakLabel,  data:peakDay,   borderColor:'#d97706', backgroundColor:'transparent', borderWidth:1.5, borderDash:[2,4], pointRadius:0, tension:.2, fill:false, spanGaps:true, order:2}
+      {label:actLabel,        data:actual,    borderColor:color,   backgroundColor:color+'18', borderWidth:2.5, pointRadius:2,   tension:.2, fill:true,  spanGaps:false, order:1},
+      {label:'Årssnitt 2025', data:annualAvg, borderColor:CLR_AVG, backgroundColor:'transparent', borderWidth:1.5, borderDash:[5,4], pointRadius:0, tension:.2, fill:false, spanGaps:true, order:3},
+      {label:peakLabel,       data:peakDay,   borderColor:CLR_PEAK,backgroundColor:'transparent', borderWidth:1.5, borderDash:[2,4], pointRadius:0, tension:.2, fill:false, spanGaps:true, order:2}
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,animation:{duration:200},
       interaction:{mode:'index',intersect:false},
       plugins:{
-        legend:{position:'bottom',labels:{font:{size:11},boxWidth:16,padding:8}},
-        tooltip:{callbacks:{label:ctx=>ctx.parsed.y==null?null:` ${ctx.dataset.label}: ${fmtNum(ctx.parsed.y)}`}}
+        legend:{position:'bottom',labels:{font:{size:10,family:"'DM Mono', monospace"},boxWidth:16,padding:10,color:'#5a7a9a'}},
+        tooltip:{
+          backgroundColor:'rgba(7,13,24,.95)',
+          borderColor:'rgba(26,48,80,.8)',
+          borderWidth:1,
+          titleColor:'#dde6f0',
+          bodyColor:'#8aabcc',
+          titleFont:{family:"'DM Mono', monospace",size:11},
+          bodyFont:{family:"'DM Mono', monospace",size:11},
+          callbacks:{label:ctx=>ctx.parsed.y==null?null:` ${ctx.dataset.label}: ${fmtNum(ctx.parsed.y)}`}
+        }
       },
       scales:{
-        x:{grid:{display:false},ticks:{autoSkip:true,maxTicksLimit:12,font:{size:10}}},
-        y:{beginAtZero:true,title:{display:true,text:'Personbiler / time',font:{size:10}},ticks:{callback:v=>fmtNum(v),font:{size:10}}}
+        x:{grid:{color:'rgba(26,48,80,.3)'},ticks:{autoSkip:true,maxTicksLimit:12,font:{size:10,family:"'DM Mono', monospace"},color:'#3d5a78'}},
+        y:{beginAtZero:true,grid:{color:'rgba(26,48,80,.3)'},title:{display:true,text:'PERSONBILER / TIME',font:{size:9,family:"'DM Mono', monospace"},color:'#3d5a78'},ticks:{callback:v=>fmtNum(v),font:{size:10,family:"'DM Mono', monospace"},color:'#3d5a78'}}
       }
     }
   });
@@ -565,43 +931,52 @@ function makeDailyChart(id,dateLabels,actual,avgLine,actLabel,actColor,fillColor
     if(!dateLabels.includes(date)) continue;
     annotations['l_'+date]={
       type:'line',xMin:date,xMax:date,
-      borderColor:hol.peak?'rgba(185,28,28,.9)':'rgba(185,28,28,.28)',
+      borderColor:hol.peak?'rgba(240,180,41,.85)':'rgba(240,112,112,.28)',
       borderWidth:hol.peak?2.5:1,
       label:hol.peak?{display:true,content:hol.name,position:'start',yAdjust:8,
-        font:{size:10,weight:'700'},color:'#7f1d1d',
-        backgroundColor:'rgba(254,202,202,.92)',borderRadius:4,padding:{x:5,y:3}}
+        font:{size:10,weight:'700',family:"'DM Mono', monospace"},color:'#f0b429',
+        backgroundColor:'rgba(240,180,41,.1)',borderColor:'rgba(240,180,41,.3)',borderRadius:4,padding:{x:5,y:3}}
         :{display:false}
     };
   }
   charts[id]=new Chart(document.getElementById(id),{
     type:'line',
     data:{labels:dateLabels,datasets:[
-      {label:actLabel,     data:actual,  borderColor:actColor, backgroundColor:fillColor,  borderWidth:1.5,pointRadius:0,tension:.2,fill:true, spanGaps:true,order:2},
-      {label:'Snitt ukedag',data:avgLine,borderColor:'#94a3b8',backgroundColor:'transparent',borderWidth:1.5,borderDash:[5,4],pointRadius:0,tension:0,fill:false,spanGaps:true,order:1}
+      {label:actLabel,      data:actual,  borderColor:actColor,  backgroundColor:fillColor,   borderWidth:1.5,pointRadius:0,tension:.2,fill:true, spanGaps:true,order:2},
+      {label:'Snitt ukedag',data:avgLine, borderColor:CLR_AVG,   backgroundColor:'transparent',borderWidth:1.5,borderDash:[5,4],pointRadius:0,tension:0,fill:false,spanGaps:true,order:1}
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,animation:{duration:300},
       interaction:{mode:'index',intersect:false},
       plugins:{
-        legend:{position:'bottom',labels:{font:{size:11},boxWidth:16,padding:8}},
-        tooltip:{callbacks:{
-          title:items=>{
-            const d=items[0].label,hol=holidays[d];
-            const fmt=new Date(d+'T12:00:00').toLocaleDateString('nb-NO',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-            return hol?`${fmt} – ${hol.name}`:fmt;
-          },
-          label:ctx=>ctx.parsed.y==null?null:` ${ctx.dataset.label}: ${fmtNum(ctx.parsed.y)} personbiler`
-        }},
+        legend:{position:'bottom',labels:{font:{size:10,family:"'DM Mono', monospace"},boxWidth:16,padding:10,color:'#5a7a9a'}},
+        tooltip:{
+          backgroundColor:'rgba(7,13,24,.95)',
+          borderColor:'rgba(26,48,80,.8)',
+          borderWidth:1,
+          titleColor:'#dde6f0',
+          bodyColor:'#8aabcc',
+          titleFont:{family:"'DM Mono', monospace",size:11},
+          bodyFont:{family:"'DM Mono', monospace",size:11},
+          callbacks:{
+            title:items=>{
+              const d=items[0].label,hol=holidays[d];
+              const fmt=new Date(d+'T12:00:00').toLocaleDateString('nb-NO',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+              return hol?`${fmt} – ${hol.name}`:fmt;
+            },
+            label:ctx=>ctx.parsed.y==null?null:` ${ctx.dataset.label}: ${fmtNum(ctx.parsed.y)} personbiler`
+          }
+        },
         annotation:{annotations}
       },
       scales:{
-        x:{grid:{display:false},ticks:{autoSkip:false,maxRotation:0,font:{size:10},
+        x:{grid:{color:'rgba(26,48,80,.3)'},ticks:{autoSkip:false,maxRotation:0,font:{size:10,family:"'DM Mono', monospace"},color:'#3d5a78',
           callback:function(val){
             const label=dateLabels[val]||'';
             const d=new Date(label+'T12:00:00');
             return isNaN(d)||d.getDate()!==1?null:d.toLocaleDateString('nb-NO',{month:'short',year:'2-digit'});
           }}},
-        y:{beginAtZero:true,title:{display:true,text:'Personbiler / dag',font:{size:10}},ticks:{callback:v=>fmtNum(v),font:{size:10}}}
+        y:{beginAtZero:true,grid:{color:'rgba(26,48,80,.3)'},title:{display:true,text:'PERSONBILER / DAG',font:{size:9,family:"'DM Mono', monospace"},color:'#3d5a78'},ticks:{callback:v=>fmtNum(v),font:{size:10,family:"'DM Mono', monospace"},color:'#3d5a78'}}
       }
     }
   });
@@ -612,19 +987,28 @@ function makeBarChart(id,labels,innData,utData) {
   charts[id]=new Chart(document.getElementById(id),{
     type:'bar',
     data:{labels,datasets:[
-      {label:'Inn i Norge',data:innData,backgroundColor:'rgba(29,78,216,.8)', borderColor:'rgb(29,78,216)', borderWidth:1,borderRadius:4},
-      {label:'Ut av Norge',data:utData, backgroundColor:'rgba(185,28,28,.8)', borderColor:'rgb(185,28,28)', borderWidth:1,borderRadius:4}
+      {label:'Inn i Norge',data:innData,backgroundColor:`${CLR_INN}cc`, borderColor:CLR_INN, borderWidth:1,borderRadius:4},
+      {label:'Ut av Norge',data:utData, backgroundColor:`${CLR_UT}cc`,  borderColor:CLR_UT,  borderWidth:1,borderRadius:4}
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,animation:{duration:300},
       interaction:{mode:'index',intersect:false},
       plugins:{
-        legend:{position:'bottom',labels:{font:{size:11},boxWidth:16,padding:8}},
-        tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtNum(ctx.parsed.y)} personbiler`}}
+        legend:{position:'bottom',labels:{font:{size:10,family:"'DM Mono', monospace"},boxWidth:16,padding:10,color:'#5a7a9a'}},
+        tooltip:{
+          backgroundColor:'rgba(7,13,24,.95)',
+          borderColor:'rgba(26,48,80,.8)',
+          borderWidth:1,
+          titleColor:'#dde6f0',
+          bodyColor:'#8aabcc',
+          titleFont:{family:"'DM Mono', monospace",size:11},
+          bodyFont:{family:"'DM Mono', monospace",size:11},
+          callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtNum(ctx.parsed.y)} personbiler`}
+        }
       },
       scales:{
-        x:{grid:{display:false},ticks:{font:{size:11}}},
-        y:{beginAtZero:true,title:{display:true,text:'Personbiler / måned',font:{size:10}},ticks:{callback:v=>fmtNum(v),font:{size:11}}}
+        x:{grid:{display:false},ticks:{font:{size:11,family:"'DM Mono', monospace"},color:'#3d5a78'}},
+        y:{beginAtZero:true,grid:{color:'rgba(26,48,80,.3)'},title:{display:true,text:'PERSONBILER / MÅNED',font:{size:9,family:"'DM Mono', monospace"},color:'#3d5a78'},ticks:{callback:v=>fmtNum(v),font:{size:11,family:"'DM Mono', monospace"},color:'#3d5a78'}}
       }
     }
   });
@@ -632,7 +1016,7 @@ function makeBarChart(id,labels,innData,utData) {
 
 /* ── Helpers ─────────────────────────────────────────────────── */
 function show(id) { document.getElementById(id).style.display=''; }
-function showError(el,msg){ el.innerHTML=`<strong>Feil:</strong> <code style="font-size:.8em">${msg}</code>`; }
+function showError(el,msg){ el.innerHTML=`<strong style="color:var(--red)">Feil:</strong> <code style="font-size:.8em;color:var(--muted)">${msg}</code>`; }
 
 /* ── Tab switching ───────────────────────────────────────────── */
 const loaded={};
@@ -653,7 +1037,6 @@ document.getElementById('last-updated').textContent =
 document.getElementById('note-peak-date').textContent =
   new Date(PEAK_DATE+'T12:00:00').toLocaleDateString('nb-NO',{day:'numeric',month:'long',year:'numeric'});
 
-/* Load hourly immediately – 3 parallel API calls */
 loadHourlyForDate(H.selectedDate);
 </script>
 </body>
