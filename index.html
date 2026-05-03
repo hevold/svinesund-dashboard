@@ -68,10 +68,24 @@
       max-width: 1080px;
       margin: 0 auto;
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       justify-content: space-between;
       gap: 1rem;
       flex-wrap: wrap;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1.1rem;
+    }
+
+    .header-mascot {
+      height: clamp(2.6rem, 7vw, 4.2rem);
+      width: auto;
+      display: block;
+      filter: drop-shadow(0 2px 12px rgba(0,0,0,.5));
+      flex-shrink: 0;
     }
 
     header h1 {
@@ -424,7 +438,8 @@
 
 <header>
   <div class="header-inner">
-    <div>
+    <div class="header-left">
+      <img src="harry.png" alt="" class="header-mascot" aria-hidden="true">
       <h1>Harryhandel-trackeren</h1>
     </div>
     <div class="header-right">
