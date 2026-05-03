@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Svinesund – Trafikkdashbord</title>
+  <title>Harryhandel-trackeren</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -40,8 +41,8 @@
       display: flex;
     }
     nav button {
-      flex: 1; padding: .85rem 1rem;
-      font-size: .9rem; font-weight: 500;
+      flex: 1; padding: .85rem .5rem;
+      font-size: .88rem; font-weight: 500;
       border: none; background: none; cursor: pointer;
       color: var(--muted);
       border-bottom: 3px solid transparent;
@@ -87,7 +88,7 @@
     }
     .inn .value { color: var(--inn); }
     .ut  .value { color: var(--ut);  }
-    .summary-grid small { font-size: .72rem; color: var(--muted); display: block; margin-top: .2rem; }
+    .summary-grid small { font-size: .72rem; color: var(--muted); display: block; margin-top: .25rem; }
 
     /* ── Charts grid ─ */
     .charts-grid {
@@ -109,19 +110,19 @@
       font-size: .8rem; font-weight: 600;
       color: var(--muted); margin-bottom: .75rem;
     }
-    .chart-wrap {
-      position: relative;
-      height: 280px;
-    }
-    @media (min-width: 700px) {
-      .chart-wrap { height: 300px; }
-    }
+    .chart-wrap { position: relative; height: 300px; }
+    .chart-wrap--tall { position: relative; height: 380px; }
 
-    /* ── Note / meta ─ */
-    .note {
-      font-size: .75rem; color: var(--muted);
-      padding: .1rem 0;
+    /* ── Note ─ */
+    .note { font-size: .75rem; color: var(--muted); }
+
+    /* ── Legend row ─ */
+    .legend-row {
+      display: flex; gap: 1.1rem; flex-wrap: wrap;
+      margin-bottom: .7rem; font-size: .8rem;
     }
+    .legend-item { display: flex; align-items: center; gap: .35rem; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
     /* ── Loading / error ─ */
     .status {
@@ -145,37 +146,49 @@
 
     footer {
       text-align: center; padding: 0 1rem 2rem;
-      font-size: .76rem; color: var(--muted); line-height: 1.8;
+      font-size: .76rem; color: var(--muted); line-height: 1.9;
     }
     footer a { color: var(--inn); }
+
+    /* ── Holiday legend dot ─ */
+    .hol-dot {
+      display: inline-block; width: 10px; height: 14px;
+      background: rgba(185,28,28,.35);
+      border-radius: 2px; vertical-align: middle;
+      margin-right: .3rem;
+    }
+    .hol-dot--peak {
+      background: rgba(185,28,28,.9);
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>Svinesundsbrua</h1>
-  <p>Personbiltrafikk · E6 · TRP 04904V971774 · Halden</p>
+  <h1>Harryhandel-trackeren</h1>
+  <p>Personbiltrafikk over Svinesundsbrua · E6 · TRP 04904V971774 · Halden</p>
 </header>
 
 <nav aria-label="Velg visning">
   <button id="btn-hourly"  aria-selected="true"  onclick="switchTab('hourly')">Timetrafikk</button>
+  <button id="btn-daily"   aria-selected="false" onclick="switchTab('daily')">Dagsvisning</button>
   <button id="btn-monthly" aria-selected="false" onclick="switchTab('monthly')">Månedstrafikk</button>
 </nav>
 
 <main>
 
-  <!-- ── Hourly view ── -->
+  <!-- ══ Hourly view ══════════════════════════════════════ -->
   <section id="section-hourly">
     <div class="summary-grid" id="sum-hourly" style="display:none">
       <article class="inn">
         <h2>Inn i Norge · i dag</h2>
         <p class="value" id="stat-hourly-inn">–</p>
-        <small>personbiler registrert</small>
+        <small>personbiler så langt i dag</small>
       </article>
       <article class="ut">
         <h2>Ut av Norge · i dag</h2>
         <p class="value" id="stat-hourly-ut">–</p>
-        <small>personbiler registrert</small>
+        <small>personbiler så langt i dag</small>
       </article>
     </div>
 
@@ -195,13 +208,50 @@
     </div>
 
     <p class="note" id="note-hourly" style="display:none">
-      Personbil = kjøretøy kortere enn 5,6 m &nbsp;·&nbsp;
-      Viser i dag og siste 7 dager (lysere = eldre) &nbsp;·&nbsp;
+      Personbil = kjøretøy &lt; 5,6 m &nbsp;·&nbsp;
+      I dag + siste 7 dager (lysere = eldre) &nbsp;·&nbsp;
       Stiplet = snitt
     </p>
   </section>
 
-  <!-- ── Monthly view ── -->
+  <!-- ══ Daily view ═══════════════════════════════════════ -->
+  <section id="section-daily" hidden>
+    <div class="summary-grid" id="sum-daily" style="display:none">
+      <article class="inn">
+        <h2>Toppdag inn i Norge</h2>
+        <p class="value" id="stat-peak-inn">–</p>
+        <small id="stat-peak-inn-date">personbiler</small>
+      </article>
+      <article class="ut">
+        <h2>Toppdag ut av Norge</h2>
+        <p class="value" id="stat-peak-ut">–</p>
+        <small id="stat-peak-ut-date">personbiler</small>
+      </article>
+    </div>
+
+    <div id="loading-daily" class="status">
+      <span class="spinner"></span>Henter daglige data for siste 12 måneder…
+    </div>
+
+    <div class="chart-card" id="card-daily" style="display:none">
+      <h2>Personbiler per dag · siste 12 måneder</h2>
+      <div class="legend-row">
+        <span class="legend-item"><span class="dot" style="background:rgba(29,78,216,.8)"></span>Inn i Norge</span>
+        <span class="legend-item"><span class="dot" style="background:rgba(185,28,28,.8)"></span>Ut av Norge</span>
+        <span class="legend-item"><span class="hol-dot"></span>Helligdag</span>
+        <span class="legend-item"><span class="hol-dot hol-dot--peak"></span>Skjærtorsdag</span>
+      </div>
+      <div class="chart-wrap--tall"><canvas id="chart-daily"></canvas></div>
+    </div>
+
+    <p class="note" id="note-daily" style="display:none">
+      Personbil = kjøretøy &lt; 5,6 m &nbsp;·&nbsp;
+      Røde streker = norske helligdager &nbsp;·&nbsp;
+      Mørk rød = Skjærtorsdag (største utslagsdag)
+    </p>
+  </section>
+
+  <!-- ══ Monthly view ══════════════════════════════════════ -->
   <section id="section-monthly" hidden>
     <div class="summary-grid" id="sum-monthly" style="display:none">
       <article class="inn">
@@ -217,7 +267,7 @@
     </div>
 
     <div id="loading-monthly" class="status">
-      <span class="spinner"></span>Henter måneddata – paginerer gjennom årsdata…
+      <span class="spinner"></span>Henter måneddata…
     </div>
 
     <div class="chart-card" id="card-monthly" style="display:none">
@@ -226,7 +276,7 @@
     </div>
 
     <p class="note" id="note-monthly" style="display:none">
-      Personbil = kjøretøy kortere enn 5,6 m &nbsp;·&nbsp;
+      Personbil = kjøretøy &lt; 5,6 m &nbsp;·&nbsp;
       Inneværende måned utelatt (ufullstendig)
     </p>
   </section>
@@ -239,400 +289,529 @@
 </footer>
 
 <script>
-  /* ── Config ───────────────────────────────────────────── */
-  const API       = 'https://trafikkdata-api.atlas.vegvesen.no/';
-  const TRP       = '04904V971774';
-  const PERSONBIL = '[..,5.6)';
-  const DIR_INN   = 'Sarpsborg';
-  const DIR_UT    = 'Svinesund (Riksgrensen)';
-  const BATCH     = 100; // API max
+/* ── Config ──────────────────────────────────────────────── */
+const API       = 'https://trafikkdata-api.atlas.vegvesen.no/';
+const TRP       = '04904V971774';
+const PERSONBIL = '[..,5.6)';
+const DIR_INN   = 'Sarpsborg';
+const DIR_UT    = 'Svinesund (Riksgrensen)';
+const BATCH     = 100;
 
-  /* ── Utils ───────────────────────────────────────────── */
-  const pad = n => String(n).padStart(2, '0');
+/* ── Utilities ───────────────────────────────────────────── */
+const pad = n => String(n).padStart(2, '0');
 
-  /* ISO string with local timezone offset, suitable for GraphQL */
-  function toLocalISO(date) {
-    const tz   = -date.getTimezoneOffset();
-    const sign = tz >= 0 ? '+' : '-';
-    const hh   = pad(Math.floor(Math.abs(tz) / 60));
-    const mm   = pad(Math.abs(tz) % 60);
-    const d    = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return d.toISOString().slice(0, 19) + sign + hh + ':' + mm;
-  }
+function toLocalISO(date) {
+  const tz   = -date.getTimezoneOffset();
+  const sign = tz >= 0 ? '+' : '-';
+  const hh   = pad(Math.floor(Math.abs(tz) / 60));
+  const mm   = pad(Math.abs(tz) % 60);
+  const d    = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return d.toISOString().slice(0, 19) + sign + hh + ':' + mm;
+}
 
-  function todayISO() { return toLocalISO(new Date()).slice(0, 10); }
+const fmtNum  = n => (n ?? 0).toLocaleString('nb-NO');
+const fmtDate = s => new Date(s + 'T12:00:00').toLocaleDateString('nb-NO', {
+  weekday: 'long', day: 'numeric', month: 'long'
+});
 
-  const fmtNum = n => (n ?? 0).toLocaleString('nb-NO');
+function personbilVol(byLengthRange) {
+  const e = (byLengthRange || []).find(lr => lr.lengthRange.representation === PERSONBIL);
+  return e?.total?.volumeNumbers?.volume ?? null;
+}
+function dirVol(byDirection, heading) {
+  const d = (byDirection || []).find(d => d.heading === heading);
+  return d ? personbilVol(d.byLengthRange) : null;
+}
 
-  /* Extract personbil volume from byLengthRange array */
-  function personbilVol(byLengthRange) {
-    const e = (byLengthRange || []).find(lr => lr.lengthRange.representation === PERSONBIL);
-    return e?.total?.volumeNumbers?.volume ?? null;
-  }
+/* ── Norwegian holiday calculator ───────────────────────── */
+function easterSunday(year) {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+  const d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day   = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
 
-  /* Extract volume for one direction heading */
-  function dirVol(byDirection, heading) {
-    const d = (byDirection || []).find(d => d.heading === heading);
-    return d ? personbilVol(d.byLengthRange) : null;
-  }
+function addDays(date, n) {
+  return new Date(date.getTime() + n * 86400000);
+}
 
-  /* ── GraphQL fetch with cursor pagination ─────────────── */
-  async function fetchAllEdges(period, from, to) {
-    const edges = [];
-    let after   = null;
-    let hasNext = true;
+function isoDate(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
-    while (hasNext) {
-      const afterArg = after ? `, after: "${after}"` : '';
-      const gql = `{
-        trafficData(trafficRegistrationPointId: "${TRP}") {
-          volume {
-            ${period}(from: "${from}", to: "${to}", first: ${BATCH}${afterArg}) {
-              edges {
-                node {
-                  from
-                  byDirection {
-                    heading
-                    byLengthRange {
-                      lengthRange { representation }
-                      total { volumeNumbers { volume } }
-                    }
-                  }
-                }
-              }
-              pageInfo { hasNextPage endCursor }
-            }
-          }
-        }
-      }`;
+function holidaysForYear(year) {
+  const easter = easterSunday(year);
+  return [
+    { date: `${year}-01-01`,          name: 'Nyttårsdag',              peak: false },
+    { date: isoDate(addDays(easter,-3)), name: 'Skjærtorsdag',           peak: true  },
+    { date: isoDate(addDays(easter,-2)), name: 'Langfredag',             peak: false },
+    { date: isoDate(easter),           name: '1. påskedag',             peak: false },
+    { date: isoDate(addDays(easter, 1)), name: '2. påskedag',            peak: false },
+    { date: `${year}-05-01`,          name: 'Arbeidernes dag',          peak: false },
+    { date: `${year}-05-17`,          name: 'Grunnlovsdag',             peak: false },
+    { date: isoDate(addDays(easter,39)), name: 'Kristi himmelfartsdag',  peak: false },
+    { date: isoDate(addDays(easter,49)), name: '1. pinsedag',            peak: false },
+    { date: isoDate(addDays(easter,50)), name: '2. pinsedag',            peak: false },
+    { date: `${year}-12-25`,          name: '1. juledag',               peak: false },
+    { date: `${year}-12-26`,          name: '2. juledag',               peak: false },
+  ];
+}
 
-      const res  = await fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: gql })
-      });
-      const json = await res.json();
-
-      if (json.errors?.length) throw new Error(json.errors[0].message);
-
-      const conn = json?.data?.trafficData?.volume?.[period];
-      if (!conn) throw new Error('Uventet API-svar – manglende datafelt');
-
-      edges.push(...conn.edges);
-      hasNext = conn.pageInfo.hasNextPage;
-      after   = conn.pageInfo.endCursor;
-    }
-
-    return edges;
-  }
-
-  /* ── Group edges: date → hour → volume ───────────────── */
-  function groupByDateHour(edges, heading) {
-    const days = {};
-    for (const e of edges) {
-      const from = e.node.from;            // "2026-05-03T08:00:00+02:00"
-      const date = from.slice(0, 10);      // "2026-05-03"
-      const hour = parseInt(from.slice(11, 13), 10);
-      if (!days[date]) days[date] = new Array(24).fill(null);
-      days[date][hour] = dirVol(e.node.byDirection, heading);
-    }
-    return days;
-  }
-
-  /* Average per hour across all days (ignores nulls) */
-  function computeAvg(dayGroups) {
-    return Array.from({ length: 24 }, (_, h) => {
-      const vals = Object.values(dayGroups).map(d => d[h]).filter(v => v !== null);
-      return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
-    });
-  }
-
-  /* ── Build Chart.js line datasets for one direction ──── */
-  function buildLineDatasets(dayGroups, heading) {
-    const today = todayISO();
-    // Yesterday: subtract 1 day from today
-    const yd = new Date(today + 'T12:00:00');
-    yd.setDate(yd.getDate() - 1);
-    const yesterday = yd.toISOString().slice(0, 10);
-
-    const isInn = heading === DIR_INN;
-
-    /* Color scales: index 0 = oldest/lightest, last = today/darkest */
-    const innPalette = ['#dbeafe','#bfdbfe','#93c5fd','#60a5fa','#3b82f6','#2563eb','#1d4ed8','#1e40af'];
-    const utPalette  = ['#fee2e2','#fecaca','#fca5a5','#f87171','#ef4444','#dc2626','#b91c1c','#991b1b'];
-    const palette    = isInn ? innPalette : utPalette;
-    const avgColor   = isInn ? '#1e3a5f' : '#7f1d1d';
-
-    const sortedDays = Object.keys(dayGroups).sort(); // oldest first
-    const N = sortedDays.length;
-
-    const datasets = sortedDays.map((date, i) => {
-      const isToday = date === today;
-      const isYest  = date === yesterday;
-
-      /* Align colors: last color in palette = today */
-      const ci    = palette.length - N + i;
-      const color = palette[Math.max(0, Math.min(ci, palette.length - 1))];
-
-      let label;
-      if (isToday)     label = 'I dag';
-      else if (isYest) label = 'I går';
-      else {
-        const d = new Date(date + 'T12:00:00');
-        label = d.toLocaleDateString('nb-NO', { weekday: 'short', day: 'numeric', month: 'short' });
+/* Build a map of { 'YYYY-MM-DD': { name, peak } } for a date range */
+function holidayMap(fromDate, toDate) {
+  const map = {};
+  const y0  = fromDate.getFullYear();
+  const y1  = toDate.getFullYear();
+  for (let y = y0; y <= y1; y++) {
+    for (const h of holidaysForYear(y)) {
+      if (h.date >= isoDate(fromDate) && h.date <= isoDate(toDate)) {
+        map[h.date] = h;
       }
-
-      return {
-        label,
-        data: dayGroups[date],
-        borderColor: color,
-        backgroundColor: 'transparent',
-        borderWidth: isToday ? 2.5 : 1.5,
-        pointRadius: isToday ? 2.5 : 0,
-        tension: 0.25,
-        spanGaps: false,
-        /* Lower order = drawn on top */
-        order: N - i
-      };
-    });
-
-    /* Average line */
-    datasets.push({
-      label: 'Snitt',
-      data: computeAvg(dayGroups),
-      borderColor: avgColor,
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      borderDash: [6, 4],
-      pointRadius: 0,
-      tension: 0.25,
-      spanGaps: true,
-      order: N + 1
-    });
-
-    return datasets;
+    }
   }
+  return map;
+}
 
-  /* ── Chart factory ────────────────────────────────────── */
-  const charts = {};
-
-  function makeLineChart(id, datasets) {
-    if (charts[id]) charts[id].destroy();
-    const labels = Array.from({ length: 24 }, (_, i) => pad(i) + ':00');
-    charts[id] = new Chart(document.getElementById(id), {
-      type: 'line',
-      data: { labels, datasets },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 300 },
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { font: { size: 11 }, boxWidth: 16, padding: 8 }
-          },
-          tooltip: {
-            callbacks: {
-              label: ctx => {
-                const v = ctx.parsed.y;
-                return v == null ? null : ` ${ctx.dataset.label}: ${fmtNum(v)}`;
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { autoSkip: true, maxTicksLimit: 12, font: { size: 10 } }
-          },
-          y: {
-            beginAtZero: true,
-            title: { display: true, text: 'Personbiler / time', font: { size: 10 } },
-            ticks: { callback: v => fmtNum(v), font: { size: 10 } }
+/* ── GraphQL fetch with cursor pagination ────────────────── */
+async function fetchAllEdges(period, from, to) {
+  const edges = [];
+  let after   = null;
+  let hasNext = true;
+  while (hasNext) {
+    const afterArg = after ? `, after: "${after}"` : '';
+    const gql = `{
+      trafficData(trafficRegistrationPointId: "${TRP}") {
+        volume {
+          ${period}(from: "${from}", to: "${to}", first: ${BATCH}${afterArg}) {
+            edges { node { from byDirection { heading byLengthRange {
+              lengthRange { representation } total { volumeNumbers { volume } }
+            } } } }
+            pageInfo { hasNextPage endCursor }
           }
         }
       }
+    }`;
+    const res  = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: gql })
     });
+    const json = await res.json();
+    if (json.errors?.length) throw new Error(json.errors[0].message);
+    const conn = json?.data?.trafficData?.volume?.[period];
+    if (!conn) throw new Error('Uventet API-svar – manglende datafelt');
+    edges.push(...conn.edges);
+    hasNext = conn.pageInfo.hasNextPage;
+    after   = conn.pageInfo.endCursor;
   }
+  return edges;
+}
 
-  function makeBarChart(id, labels, innData, utData) {
-    if (charts[id]) charts[id].destroy();
-    charts[id] = new Chart(document.getElementById(id), {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'Inn i Norge',
-            data: innData,
-            backgroundColor: 'rgba(29,78,216,.8)',
-            borderColor: 'rgb(29,78,216)',
-            borderWidth: 1,
-            borderRadius: 4
-          },
-          {
-            label: 'Ut av Norge',
-            data: utData,
-            backgroundColor: 'rgba(185,28,28,.8)',
-            borderColor: 'rgb(185,28,28)',
-            borderWidth: 1,
-            borderRadius: 4
+/* ── Shared byDay cache ──────────────────────────────────── */
+let _dayEdges = null;
+let _dayFrom  = null;
+
+async function getDayEdges() {
+  if (_dayEdges) return _dayEdges;
+  const now  = new Date();
+  const from = new Date(now);
+  from.setMonth(from.getMonth() - 13);
+  from.setDate(1);
+  from.setHours(0, 0, 0, 0);
+  _dayFrom   = from;
+  _dayEdges  = await fetchAllEdges('byDay', toLocalISO(from), toLocalISO(now));
+  return _dayEdges;
+}
+
+/* ── Hourly helpers ──────────────────────────────────────── */
+function groupByDateHour(edges, heading) {
+  const days = {};
+  for (const e of edges) {
+    const from = e.node.from;
+    const date = from.slice(0, 10);
+    const hour = parseInt(from.slice(11, 13), 10);
+    if (!days[date]) days[date] = new Array(24).fill(null);
+    days[date][hour] = dirVol(e.node.byDirection, heading);
+  }
+  return days;
+}
+
+function computeAvg(dayGroups) {
+  return Array.from({ length: 24 }, (_, h) => {
+    const vals = Object.values(dayGroups).map(d => d[h]).filter(v => v !== null);
+    return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+  });
+}
+
+function todayISO() { return toLocalISO(new Date()).slice(0, 10); }
+
+function buildLineDatasets(dayGroups, heading) {
+  const today = todayISO();
+  const yd = new Date(today + 'T12:00:00');
+  yd.setDate(yd.getDate() - 1);
+  const yesterday = yd.toISOString().slice(0, 10);
+
+  const isInn   = heading === DIR_INN;
+  const palette = isInn
+    ? ['#dbeafe','#bfdbfe','#93c5fd','#60a5fa','#3b82f6','#2563eb','#1d4ed8','#1e40af']
+    : ['#fee2e2','#fecaca','#fca5a5','#f87171','#ef4444','#dc2626','#b91c1c','#991b1b'];
+  const avgColor = isInn ? '#1e3a5f' : '#7f1d1d';
+
+  const sortedDays = Object.keys(dayGroups).sort();
+  const N = sortedDays.length;
+
+  const datasets = sortedDays.map((date, i) => {
+    const isToday = date === today;
+    const isYest  = date === yesterday;
+    const ci    = palette.length - N + i;
+    const color = palette[Math.max(0, Math.min(ci, palette.length - 1))];
+    let label;
+    if (isToday)     label = 'I dag';
+    else if (isYest) label = 'I går';
+    else {
+      const d = new Date(date + 'T12:00:00');
+      label = d.toLocaleDateString('nb-NO', { weekday: 'short', day: 'numeric', month: 'short' });
+    }
+    return {
+      label, data: dayGroups[date],
+      borderColor: color, backgroundColor: 'transparent',
+      borderWidth: isToday ? 2.5 : 1.5,
+      pointRadius: isToday ? 2.5 : 0,
+      tension: 0.25, spanGaps: false, order: N - i
+    };
+  });
+
+  datasets.push({
+    label: 'Snitt', data: computeAvg(dayGroups),
+    borderColor: avgColor, backgroundColor: 'transparent',
+    borderWidth: 2, borderDash: [6, 4],
+    pointRadius: 0, tension: 0.25, spanGaps: true, order: N + 1
+  });
+  return datasets;
+}
+
+/* ── Chart instances ─────────────────────────────────────── */
+const charts = {};
+
+function makeLineChart(id, datasets) {
+  if (charts[id]) charts[id].destroy();
+  const labels = Array.from({ length: 24 }, (_, i) => pad(i) + ':00');
+  charts[id] = new Chart(document.getElementById(id), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 300 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 16, padding: 8 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const v = ctx.parsed.y;
+              return v == null ? null : ` ${ctx.dataset.label}: ${fmtNum(v)}`;
+            }
           }
-        ]
+        }
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 300 },
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { font: { size: 11 }, boxWidth: 16, padding: 8 }
-          },
-          tooltip: {
-            callbacks: {
-              label: ctx => ` ${ctx.dataset.label}: ${fmtNum(ctx.parsed.y)} personbiler`
+      scales: {
+        x: { grid: { display: false }, ticks: { autoSkip: true, maxTicksLimit: 12, font: { size: 10 } } },
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Personbiler / time', font: { size: 10 } },
+          ticks: { callback: v => fmtNum(v), font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+function makeDailyChart(dateLabels, innData, utData, holidays) {
+  if (charts.daily) charts.daily.destroy();
+
+  /* Build annotation objects */
+  const annotations = {};
+  for (const [date, hol] of Object.entries(holidays)) {
+    const idx = dateLabels.indexOf(date);
+    if (idx < 0) continue;
+
+    annotations['line_' + date] = {
+      type: 'line',
+      xMin: date, xMax: date,
+      borderColor: hol.peak ? 'rgba(185,28,28,.9)' : 'rgba(185,28,28,.28)',
+      borderWidth: hol.peak ? 2.5 : 1,
+      label: hol.peak ? {
+        display: true,
+        content: hol.name,
+        position: 'start',
+        yAdjust: 10,
+        font: { size: 10, weight: '700' },
+        color: '#7f1d1d',
+        backgroundColor: 'rgba(254,202,202,.92)',
+        borderRadius: 4,
+        padding: { x: 5, y: 3 }
+      } : { display: false }
+    };
+  }
+
+  charts.daily = new Chart(document.getElementById('chart-daily'), {
+    type: 'line',
+    data: {
+      labels: dateLabels,
+      datasets: [
+        {
+          label: 'Inn i Norge',
+          data: innData,
+          borderColor: 'rgba(29,78,216,.85)',
+          backgroundColor: 'rgba(29,78,216,.08)',
+          borderWidth: 1.5, pointRadius: 0, tension: 0.2,
+          fill: true, spanGaps: true, order: 2
+        },
+        {
+          label: 'Ut av Norge',
+          data: utData,
+          borderColor: 'rgba(185,28,28,.8)',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5, pointRadius: 0, tension: 0.2,
+          fill: false, spanGaps: true, order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 300 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 16, padding: 8 } },
+        tooltip: {
+          callbacks: {
+            title: items => {
+              const d = items[0].label;
+              const hol = holidays[d];
+              const fmt = new Date(d + 'T12:00:00').toLocaleDateString('nb-NO', {
+                weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+              });
+              return hol ? `${fmt} – ${hol.name}` : fmt;
+            },
+            label: ctx => {
+              const v = ctx.parsed.y;
+              return v == null ? null : ` ${ctx.dataset.label}: ${fmtNum(v)} personbiler`;
             }
           }
         },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { font: { size: 11 } }
-          },
-          y: {
-            beginAtZero: true,
-            title: { display: true, text: 'Personbiler / måned', font: { size: 10 } },
-            ticks: { callback: v => fmtNum(v), font: { size: 11 } }
+        annotation: { annotations }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            autoSkip: false,
+            maxRotation: 0,
+            font: { size: 10 },
+            callback: function(val) {
+              const label = dateLabels[val] || '';
+              if (!label) return null;
+              const d = new Date(label + 'T12:00:00');
+              /* Show tick only on 1st of each month */
+              return d.getDate() === 1
+                ? d.toLocaleDateString('nb-NO', { month: 'short', year: '2-digit' })
+                : null;
+            }
           }
+        },
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Personbiler / dag', font: { size: 10 } },
+          ticks: { callback: v => fmtNum(v), font: { size: 10 } }
         }
       }
-    });
-  }
-
-  /* ── Error helper ─────────────────────────────────────── */
-  function showError(el, msg) {
-    el.innerHTML = `<strong>Kunne ikke laste data.</strong><br><code style="font-size:.8em">${msg}</code>`;
-  }
-
-  /* ── Load hourly (last 8 days) ────────────────────────── */
-  const loaded = {};
-
-  async function loadHourly() {
-    if (loaded.hourly) return;
-    const loadEl = document.getElementById('loading-hourly');
-    try {
-      const now  = new Date();
-      const from = new Date(now);
-      from.setDate(from.getDate() - 7);
-      from.setHours(0, 0, 0, 0);
-
-      const edges = await fetchAllEdges('byHour', toLocalISO(from), toLocalISO(now));
-
-      const innGroups = groupByDateHour(edges, DIR_INN);
-      const utGroups  = groupByDateHour(edges, DIR_UT);
-
-      /* Today's running totals */
-      const today    = todayISO();
-      const innToday = (innGroups[today] || []).reduce((s, v) => s + (v ?? 0), 0);
-      const utToday  = (utGroups[today]  || []).reduce((s, v) => s + (v ?? 0), 0);
-      document.getElementById('stat-hourly-inn').textContent = fmtNum(innToday);
-      document.getElementById('stat-hourly-ut').textContent  = fmtNum(utToday);
-
-      loadEl.style.display = 'none';
-      document.getElementById('sum-hourly').style.display    = '';
-      document.getElementById('charts-hourly').style.display = '';
-      document.getElementById('note-hourly').style.display   = '';
-
-      makeLineChart('chart-inn', buildLineDatasets(innGroups, DIR_INN));
-      makeLineChart('chart-ut',  buildLineDatasets(utGroups,  DIR_UT));
-
-      loaded.hourly = true;
-    } catch (err) {
-      showError(loadEl, err.message);
     }
-  }
+  });
+}
 
-  /* ── Load monthly (last 12 complete months via byDay) ─── */
-  async function loadMonthly() {
-    if (loaded.monthly) return;
-    const loadEl = document.getElementById('loading-monthly');
-    try {
-      const now  = new Date();
-      const from = new Date(now);
-      from.setMonth(from.getMonth() - 13);
-      from.setDate(1);
-      from.setHours(0, 0, 0, 0);
-
-      const edges = await fetchAllEdges('byDay', toLocalISO(from), toLocalISO(now));
-
-      /* Aggregate by YYYY-MM */
-      const months = {};
-      for (const e of edges) {
-        const from = e.node.from;   // "2026-01-15T00:00:00+01:00"
-        const key  = from.slice(0, 7); // "2026-01"
-        if (!months[key]) {
-          months[key] = { inn: 0, ut: 0, date: new Date(from.slice(0, 10) + 'T12:00:00') };
+function makeBarChart(id, labels, innData, utData) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Inn i Norge', data: innData, backgroundColor: 'rgba(29,78,216,.8)', borderColor: 'rgb(29,78,216)', borderWidth: 1, borderRadius: 4 },
+        { label: 'Ut av Norge', data: utData,  backgroundColor: 'rgba(185,28,28,.8)', borderColor: 'rgb(185,28,28)', borderWidth: 1, borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 16, padding: 8 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtNum(ctx.parsed.y)} personbiler` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Personbiler / måned', font: { size: 10 } },
+          ticks: { callback: v => fmtNum(v), font: { size: 11 } }
         }
-        months[key].inn += dirVol(e.node.byDirection, DIR_INN) ?? 0;
-        months[key].ut  += dirVol(e.node.byDirection, DIR_UT)  ?? 0;
       }
-
-      /* Drop current partial month, keep last 12 complete */
-      const thisMonth = toLocalISO(new Date()).slice(0, 7);
-      const sorted = Object.entries(months)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .filter(([k]) => k !== thisMonth)
-        .slice(-12);
-
-      const labels  = sorted.map(([, v]) =>
-        v.date.toLocaleDateString('nb-NO', { month: 'short', year: '2-digit' })
-      );
-      const innData = sorted.map(([, v]) => v.inn);
-      const utData  = sorted.map(([, v]) => v.ut);
-
-      document.getElementById('stat-monthly-inn').textContent =
-        fmtNum(innData.reduce((s, n) => s + n, 0));
-      document.getElementById('stat-monthly-ut').textContent  =
-        fmtNum(utData.reduce((s, n) => s + n, 0));
-
-      loadEl.style.display = 'none';
-      document.getElementById('sum-monthly').style.display  = '';
-      document.getElementById('card-monthly').style.display = '';
-      document.getElementById('note-monthly').style.display = '';
-
-      makeBarChart('chart-monthly', labels, innData, utData);
-
-      loaded.monthly = true;
-    } catch (err) {
-      showError(loadEl, err.message);
     }
-  }
+  });
+}
 
-  /* ── Tab switching ────────────────────────────────────── */
-  function switchTab(tab) {
-    document.getElementById('section-hourly').hidden  = tab !== 'hourly';
-    document.getElementById('section-monthly').hidden = tab !== 'monthly';
-    document.getElementById('btn-hourly').setAttribute('aria-selected',  String(tab === 'hourly'));
-    document.getElementById('btn-monthly').setAttribute('aria-selected', String(tab === 'monthly'));
-    if (tab === 'hourly')  loadHourly();
-    if (tab === 'monthly') loadMonthly();
-  }
+/* ── Error helper ────────────────────────────────────────── */
+function showError(el, msg) {
+  el.innerHTML = `<strong>Feil:</strong> <code style="font-size:.8em">${msg}</code>`;
+}
 
-  /* ── Init ─────────────────────────────────────────────── */
-  document.getElementById('last-updated').textContent =
-    'Oppdatert: ' + new Date().toLocaleString('nb-NO', { dateStyle: 'medium', timeStyle: 'short' });
+/* ── Load: hourly (last 8 days) ──────────────────────────── */
+const loaded = {};
 
-  /*
-   * Merk: nettlesere tillater ikke å sette User-Agent via fetch() (Fetch-spesifikasjonen
-   * klassifiserer det som "forbidden header"). Vegvesens API er åpent og krever ingen
-   * autentisering. Se https://trafikkdata.atlas.vegvesen.no for vilkår og kontaktinfo.
-   */
+async function loadHourly() {
+  if (loaded.hourly) return;
+  const loadEl = document.getElementById('loading-hourly');
+  try {
+    const now  = new Date();
+    const from = new Date(now);
+    from.setDate(from.getDate() - 7);
+    from.setHours(0, 0, 0, 0);
 
-  loadHourly();
+    const edges = await fetchAllEdges('byHour', toLocalISO(from), toLocalISO(now));
+
+    const innGroups = groupByDateHour(edges, DIR_INN);
+    const utGroups  = groupByDateHour(edges, DIR_UT);
+
+    const today = todayISO();
+    document.getElementById('stat-hourly-inn').textContent =
+      fmtNum((innGroups[today] || []).reduce((s, v) => s + (v ?? 0), 0));
+    document.getElementById('stat-hourly-ut').textContent  =
+      fmtNum((utGroups[today]  || []).reduce((s, v) => s + (v ?? 0), 0));
+
+    loadEl.style.display = 'none';
+    show('sum-hourly'); show('charts-hourly'); show('note-hourly');
+    makeLineChart('chart-inn', buildLineDatasets(innGroups, DIR_INN));
+    makeLineChart('chart-ut',  buildLineDatasets(utGroups,  DIR_UT));
+    loaded.hourly = true;
+  } catch (err) { showError(loadEl, err.message); }
+}
+
+/* ── Load: daily (last ~13 months, byDay) ────────────────── */
+async function loadDaily() {
+  if (loaded.daily) return;
+  const loadEl = document.getElementById('loading-daily');
+  try {
+    const edges = await getDayEdges();
+    const now   = new Date();
+
+    /* Build parallel arrays: dates, inn, ut */
+    const byDate = {};
+    for (const e of edges) {
+      const date = e.node.from.slice(0, 10);
+      if (!byDate[date]) byDate[date] = { inn: null, ut: null };
+      const inn = dirVol(e.node.byDirection, DIR_INN);
+      const ut  = dirVol(e.node.byDirection, DIR_UT);
+      if (inn !== null) byDate[date].inn = (byDate[date].inn ?? 0) + inn;
+      if (ut  !== null) byDate[date].ut  = (byDate[date].ut  ?? 0) + ut;
+    }
+
+    /* Keep last 12 complete months, drop current partial month */
+    const thisMonth   = toLocalISO(now).slice(0, 7);
+    const sortedDates = Object.keys(byDate).sort().filter(d => d.slice(0, 7) !== thisMonth);
+
+    /* Trim to 12 months */
+    const cutoff = (() => {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() - 12);
+      d.setDate(1);
+      return isoDate(d);
+    })();
+    const filtered = sortedDates.filter(d => d >= cutoff);
+
+    const dateLabels = filtered;
+    const innData    = filtered.map(d => byDate[d].inn);
+    const utData     = filtered.map(d => byDate[d].ut);
+
+    /* Peak days */
+    const peakInnIdx = innData.reduce((mi, v, i, a) => (v ?? 0) > (a[mi] ?? 0) ? i : mi, 0);
+    const peakUtIdx  = utData.reduce((mi, v, i, a)  => (v ?? 0) > (a[mi] ?? 0) ? i : mi, 0);
+    document.getElementById('stat-peak-inn').textContent      = fmtNum(innData[peakInnIdx]);
+    document.getElementById('stat-peak-inn-date').textContent = fmtDate(dateLabels[peakInnIdx]);
+    document.getElementById('stat-peak-ut').textContent       = fmtNum(utData[peakUtIdx]);
+    document.getElementById('stat-peak-ut-date').textContent  = fmtDate(dateLabels[peakUtIdx]);
+
+    /* Holiday map for this range */
+    const fromD  = new Date(filtered[0] + 'T12:00:00');
+    const toD    = new Date(filtered[filtered.length - 1] + 'T12:00:00');
+    const holMap = holidayMap(fromD, toD);
+
+    loadEl.style.display = 'none';
+    show('sum-daily'); show('card-daily'); show('note-daily');
+    makeDailyChart(dateLabels, innData, utData, holMap);
+    loaded.daily = true;
+  } catch (err) { showError(loadEl, err.message); }
+}
+
+/* ── Load: monthly ───────────────────────────────────────── */
+async function loadMonthly() {
+  if (loaded.monthly) return;
+  const loadEl = document.getElementById('loading-monthly');
+  try {
+    const edges = await getDayEdges();
+    const now   = new Date();
+
+    const months = {};
+    for (const e of edges) {
+      const key  = e.node.from.slice(0, 7);
+      const date = new Date(e.node.from.slice(0, 10) + 'T12:00:00');
+      if (!months[key]) months[key] = { inn: 0, ut: 0, date };
+      months[key].inn += dirVol(e.node.byDirection, DIR_INN) ?? 0;
+      months[key].ut  += dirVol(e.node.byDirection, DIR_UT)  ?? 0;
+    }
+
+    const thisMonth = toLocalISO(now).slice(0, 7);
+    const sorted = Object.entries(months)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .filter(([k]) => k !== thisMonth)
+      .slice(-12);
+
+    const labels  = sorted.map(([, v]) => v.date.toLocaleDateString('nb-NO', { month: 'short', year: '2-digit' }));
+    const innData = sorted.map(([, v]) => v.inn);
+    const utData  = sorted.map(([, v]) => v.ut);
+
+    document.getElementById('stat-monthly-inn').textContent = fmtNum(innData.reduce((s, n) => s + n, 0));
+    document.getElementById('stat-monthly-ut').textContent  = fmtNum(utData.reduce((s, n) => s + n, 0));
+
+    loadEl.style.display = 'none';
+    show('sum-monthly'); show('card-monthly'); show('note-monthly');
+    makeBarChart('chart-monthly', labels, innData, utData);
+    loaded.monthly = true;
+  } catch (err) { showError(loadEl, err.message); }
+}
+
+/* ── Tab switching ───────────────────────────────────────── */
+function show(id) { document.getElementById(id).style.display = ''; }
+
+function switchTab(tab) {
+  ['hourly','daily','monthly'].forEach(t => {
+    document.getElementById('section-' + t).hidden = t !== tab;
+    document.getElementById('btn-' + t).setAttribute('aria-selected', String(t === tab));
+  });
+  if (tab === 'hourly')  loadHourly();
+  if (tab === 'daily')   loadDaily();
+  if (tab === 'monthly') loadMonthly();
+}
+
+/* ── Init ────────────────────────────────────────────────── */
+document.getElementById('last-updated').textContent =
+  'Oppdatert: ' + new Date().toLocaleString('nb-NO', { dateStyle: 'medium', timeStyle: 'short' });
+
+loadHourly();
 </script>
-
 </body>
 </html>
