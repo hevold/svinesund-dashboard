@@ -60,7 +60,7 @@
     header {
       background: rgba(7,13,24,.96);
       border-bottom: 1px solid var(--border);
-      padding: 1.6rem 1.5rem 1.3rem;
+      padding: 1.4rem 1.5rem 1.2rem;
       animation: fadeDown .5s ease both;
     }
 
@@ -68,62 +68,19 @@
       max-width: 1080px;
       margin: 0 auto;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
+      justify-content: center;
     }
 
-    .header-left {
-      display: flex;
-      align-items: flex-end;
-    }
-
-    .logo-block {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      position: relative;
-    }
-
-    .header-mascot {
-      height: clamp(5rem, 13vw, 8.5rem);
-      width: auto;
+    .site-logo {
+      max-width: clamp(240px, 52vw, 500px);
+      width: 100%;
+      height: auto;
       display: block;
-      filter: drop-shadow(0 2px 16px rgba(0,0,0,.6));
-      flex-shrink: 0;
-      position: relative;
-      z-index: 2;
-      margin-bottom: -0.55rem;
-    }
-
-    .title-banner {
-      background: #000;
-      padding: .18rem .9rem .22rem;
-      border-radius: 4px;
-      position: relative;
-      z-index: 1;
-      white-space: nowrap;
-    }
-
-    header h1 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(1.8rem, 4.8vw, 3.2rem);
-      letter-spacing: .07em;
-      color: #fff;
-      line-height: 1;
-      text-align: center;
-    }
-
-    .header-right {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: .45rem;
+      filter: drop-shadow(0 3px 18px rgba(0,0,0,.6));
     }
 
     .live-badge {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: .45rem;
       font-family: 'DM Mono', monospace;
@@ -145,14 +102,6 @@
     @keyframes pulse-dot {
       0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(240,180,41,.5); }
       50%       { opacity: .6; box-shadow: 0 0 0 5px rgba(240,180,41,0); }
-    }
-
-    .header-trp {
-      font-family: 'DM Mono', monospace;
-      font-size: .68rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .06em;
     }
 
     /* ── Nav ─────────────────────────────────────────────────── */
@@ -456,27 +405,7 @@
     @media (max-width: 600px) {
       header { padding: .8rem .75rem .75rem; }
 
-      .header-inner { gap: .5rem; }
-
-      .header-left { min-width: 0; }
-
-      .header-mascot {
-        height: clamp(3.4rem, 17vw, 5rem);
-        margin-bottom: -0.4rem;
-      }
-
-      .title-banner { padding: .14rem .6rem .18rem; }
-
-      header h1 { font-size: clamp(1.2rem, 6vw, 1.8rem); }
-
-      .header-right {
-        flex-direction: row;
-        align-items: center;
-        gap: .5rem;
-        flex-shrink: 0;
-      }
-
-      .header-trp { display: none; }
+      .site-logo { max-width: clamp(180px, 72vw, 300px); }
 
       nav button {
         font-size: .67rem;
@@ -516,9 +445,7 @@
 
     /* ── Very small (≤ 380px) ────────────────────────────────── */
     @media (max-width: 380px) {
-      .header-mascot { height: clamp(2.8rem, 14vw, 3.4rem); }
-
-      header h1 { font-size: clamp(1rem, 5.5vw, 1.4rem); }
+      .site-logo { max-width: 90vw; }
 
       .summary-grid { grid-template-columns: 1fr; }
     }
@@ -528,18 +455,7 @@
 
 <header>
   <div class="header-inner">
-    <div class="header-left">
-      <div class="logo-block">
-        <img src="harry.png" alt="" class="header-mascot" aria-hidden="true">
-        <div class="title-banner">
-          <h1>Harryhandel-trackeren</h1>
-        </div>
-      </div>
-    </div>
-    <div class="header-right">
-      <span class="live-badge"><span class="live-dot"></span>Åpne data · Live</span>
-      <span class="header-trp">E6 · Svinesundsbrua · Halden · TRP 04904V971774</span>
-    </div>
+    <img src="logo.png" alt="Harryhandel-trackeren" class="site-logo">
   </div>
 </header>
 
@@ -677,6 +593,8 @@
 </main>
 
 <footer>
+  <span class="live-badge" style="justify-content:center;margin-bottom:.4rem"><span class="live-dot"></span>Åpne data · Live</span><br>
+  E6 · Svinesundsbrua · TRP 04904V971774 &nbsp;·&nbsp; FV118 · Gammel Svinesund bru · TRP 35229V971507<br>
   Kilde: <a href="https://trafikkdata.atlas.vegvesen.no" target="_blank" rel="noopener noreferrer">Statens vegvesen – Trafikkdata</a> · Åpne data (GraphQL API)<br>
   <span id="last-updated"></span>
 </footer>
